@@ -1,0 +1,42 @@
+# Virtual environment
+kicksense_env/
+venv/
+.env/
+.venv/
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.egg-info/
+.pytest_cache/
+.ipynb_checkpoints/
+
+# Large media & extracted data (too big for GitHub)
+data/videos/
+data/frames/
+data/keypoints/
+data/processed/
+
+# Per-clip pose image dumps
+outputs/penalty_*/
+
+# Keep evaluation charts & model artifacts optionally — ignore heavy models if huge
+# Uncomment next line if model files exceed GitHub limits:
+# outputs/model/*.keras
+
+# OS / IDE
+.DS_Store
+Thumbs.db
+Desktop.ini
+.idea/
+.vscode/
+*.swp
+
+# Temp / logs
+*.log
+*.tmp
+temp/
+tmp/
+~$*
+*.tmp.docx
