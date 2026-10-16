@@ -6,7 +6,13 @@ from sklearn.model_selection import train_test_split
 print("=== KICKSENSE PREPROCESSING PIPELINE ===\n")
 
 keypoints_dir = "data/keypoints"
+frames_dir = "data/frames"
 os.makedirs("data/processed", exist_ok=True)
+
+# Drop clips where MediaPipe found a pose on too few frames.
+# Low-ratio clips mostly pad/repeat junk into the 26-frame sequence.
+MIN_DETECTED_FRAMES = 10
+MIN_POSE_RATIO = 0.20
 
 # ============================================================
 # STEP 1: COORDINATE NORMALIZATION
@@ -45,12 +51,24 @@ def normalize_keypoints(keypoints):
 
     return normalized
 
+def count_frame_images(folder):
+    path = os.path.join(frames_dir, folder)
+    if not os.path.isdir(path):
+        return 0
+    return sum(
+        1 for name in os.listdir(path)
+        if name.lower().endswith((".jpg", ".jpeg", ".png"))
+    )
+
 # Process all penalty keypoints
 all_sequences = []
 all_video_ids = []
 failed = []
 
-penalty_folders = sorted(os.listdir(keypoints_dir))
+penalty_folders = sorted(
+    f for f in os.listdir(keypoints_dir)
+    if os.path.isdir(os.path.join(keypoints_dir, f))
+)
 
 for folder in penalty_folders:
     kp_path = os.path.join(keypoints_dir, folder, "keypoints.npy")
@@ -61,9 +79,20 @@ for folder in penalty_folders:
         continue
 
     keypoints = np.load(kp_path)
+    n_detected = len(keypoints)
+    n_total = count_frame_images(folder)
+    pose_ratio = (n_detected / n_total) if n_total > 0 else 0.0
 
-    if len(keypoints) < 10:
-        print(f"  Skipping {folder} - too few frames ({len(keypoints)})")
+    if n_detected < MIN_DETECTED_FRAMES:
+        print(f"  Skipping {folder} - too few detected frames ({n_detected})")
+        failed.append(folder)
+        continue
+
+    if n_total > 0 and pose_ratio < MIN_POSE_RATIO:
+        print(
+            f"  Skipping {folder} - low pose ratio "
+            f"({n_detected}/{n_total} = {pose_ratio*100:.1f}%)"
+        )
         failed.append(folder)
         continue
 
@@ -141,37 +170,48 @@ y_power = []
 y_placement = []
 valid_ids = []
 
-for vid_id in all_video_ids:
+# Keep X rows aligned with label rows (drop unlabeled ids)
+labeled_sequences = []
+for i, vid_id in enumerate(all_video_ids):
     row = df[df['video_id'] == vid_id]
     if len(row) == 0:
         print(f"  Warning: {vid_id} not found in labels")
         continue
     row = row.iloc[0]
-    y_direction.append(direction_map.get(row['shot_direction'], -1))
-    y_power.append(row['shot_power'])
-    y_placement.append(placement_map.get(row['ball_placement'], -1))
+    direction_key = str(row['shot_direction']).strip().lower()
+    placement_key = (
+        str(row['ball_placement']).strip().lower()
+        if pd.notna(row['ball_placement']) else ''
+    )
+    y_direction.append(direction_map.get(direction_key, -1))
+    y_power.append(row['shot_power'] if pd.notna(row['shot_power']) else np.nan)
+    y_placement.append(placement_map.get(placement_key, -1))
     valid_ids.append(vid_id)
+    labeled_sequences.append(X[i])
 
+X = np.array(labeled_sequences)
 y_direction = np.array(y_direction)
-y_power = np.array(y_power)
+y_power = np.array(y_power, dtype=float)
 y_placement = np.array(y_placement)
 
 print(f"Labels encoded for {len(valid_ids)} penalties")
 print(f"Shot direction classes: {np.unique(y_direction)}")
 print(f"Ball placement classes: {np.unique(y_placement)}")
-print(f"Shot power range: {y_power.min()} - {y_power.max()}")
+print(f"Shot power range: {np.nanmin(y_power)} - {np.nanmax(y_power)}")
 
 # ============================================================
 # STEP 5: OUTLIER REMOVAL
 # ============================================================
 print("\nSTEP 5: Removing outliers...")
 
-# Remove sequences where labels are invalid
-valid_mask = (y_direction != -1) & (y_placement != -1)
+# Direction + power are required for the dual-head model.
+# Placement is optional (encoded for future use; not used by current model).
+valid_mask = (y_direction != -1) & (~np.isnan(y_power))
 X = X[valid_mask]
 y_direction = y_direction[valid_mask]
 y_power = y_power[valid_mask]
 y_placement = y_placement[valid_mask]
+valid_ids = [vid for vid, keep in zip(valid_ids, valid_mask) if keep]
 
 print(f"After outlier removal: {len(X)} valid sequences")
 
@@ -180,19 +220,26 @@ print(f"After outlier removal: {len(X)} valid sequences")
 # ============================================================
 print("\nSTEP 6: Splitting into train/validation/test...")
 
+ids = np.array(valid_ids)
+
 # First split: 85% train+val, 15% test
-X_trainval, X_test, yd_trainval, yd_test, yp_trainval, yp_test, ypl_trainval, ypl_test = \
-    train_test_split(X, y_direction, y_power, y_placement,
-                     test_size=0.15, random_state=42, stratify=y_direction)
+(X_trainval, X_test, yd_trainval, yd_test, yp_trainval, yp_test,
+ ypl_trainval, ypl_test, id_trainval, id_test) = train_test_split(
+    X, y_direction, y_power, y_placement, ids,
+    test_size=0.15, random_state=42, stratify=y_direction
+)
 
 # Second split: 70% train, 15% val from trainval
-X_train, X_val, yd_train, yd_val, yp_train, yp_val, ypl_train, ypl_val = \
-    train_test_split(X_trainval, yd_trainval, yp_trainval, ypl_trainval,
-                     test_size=0.176, random_state=42, stratify=yd_trainval)
+(X_train, X_val, yd_train, yd_val, yp_train, yp_val,
+ ypl_train, ypl_val, id_train, id_val) = train_test_split(
+    X_trainval, yd_trainval, yp_trainval, ypl_trainval, id_trainval,
+    test_size=0.176, random_state=42, stratify=yd_trainval
+)
 
 print(f"Training set:   {len(X_train)} samples")
 print(f"Validation set: {len(X_val)} samples")
 print(f"Test set:       {len(X_test)} samples")
+print(f"Direction counts (all): {dict(zip(*np.unique(y_direction, return_counts=True)))}")
 
 # ============================================================
 # STEP 7: SAVE PROCESSED DATA
@@ -211,6 +258,9 @@ np.save("data/processed/y_power_test.npy", yp_test)
 np.save("data/processed/y_placement_train.npy", ypl_train)
 np.save("data/processed/y_placement_val.npy", ypl_val)
 np.save("data/processed/y_placement_test.npy", ypl_test)
+np.save("data/processed/ids_train.npy", id_train)
+np.save("data/processed/ids_val.npy", id_val)
+np.save("data/processed/ids_test.npy", id_test)
 
 print("\n=== PREPROCESSING COMPLETE ===")
 print(f"All files saved to data/processed/")
@@ -222,3 +272,4 @@ print(f"  Test:              {len(X_test)}")
 print(f"  Input shape:       {X_train.shape}")
 print(f"  Direction classes: 3 (left, center, right)")
 print(f"  Placement classes: 5 (top_left, top_right, bottom_left, bottom_right, center)")
+print(f"  Pose filter:       min {MIN_DETECTED_FRAMES} frames, ratio >= {MIN_POSE_RATIO:.0%}")

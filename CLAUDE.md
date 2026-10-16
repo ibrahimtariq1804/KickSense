@@ -33,6 +33,13 @@ Bahria University Islamabad. Team: Ashir Ijaz & Ibrahim Tariq.
 - Shot power labels (from Hough-circle ball tracking) are noisy/approximate
 - Ball placement head was prepped in preprocessing but never wired into the model
 - Pose estimation uses `static_image_mode` per-frame, not video-optimized tracking
+- Pose detection is unreliable on many clips: checking detection ratio (frames
+  with a detected pose / total frames) across `data/keypoints/` shows some
+  clips near 100%, but others as low as 3% (e.g. penalty_10: 6/200 frames).
+  Low-ratio clips contribute mostly padded/repeated frames to the training
+  sequence, which likely explains part of the ~50% direction accuracy —
+  worth investigating as a separate fix (e.g. video-mode tracking, frame
+  interpolation, or filtering out low-ratio clips from training)
 - Class imbalance: Center (39 clips) vs Right (88) / Left (71)
 - Many `cut_clips*.py` / `update_labels*.py` are versioned iterations, not a
   unified pipeline — leave them alone unless asked to consolidate them

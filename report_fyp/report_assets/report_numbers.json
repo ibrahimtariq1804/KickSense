@@ -1,0 +1,135 @@
+{
+  "accuracy": 0.4411764705882353,
+  "precision": 0.4997198879551821,
+  "recall": 0.4411764705882353,
+  "f1": 0.4135129576306047,
+  "mae": 2.9904156502555397,
+  "rmse": 3.376599500423894,
+  "confusion_matrix": [
+    [
+      3,
+      6,
+      6
+    ],
+    [
+      1,
+      5,
+      2
+    ],
+    [
+      1,
+      3,
+      7
+    ]
+  ],
+  "per_class_precision": [
+    60.0,
+    35.714285714285715,
+    46.666666666666664
+  ],
+  "per_class_recall": [
+    20.0,
+    62.5,
+    63.63636363636363
+  ],
+  "per_class_f1": [
+    30.0,
+    45.45454545454545,
+    53.84615384615385
+  ],
+  "detection_ratio_mean": 0.609443902847468,
+  "detection_below_20pct": 24,
+  "frames_mean": 161.3852140077821,
+  "frames_min": 1,
+  "frames_max": 2495,
+  "reference_training": {
+    "best_epoch": 8,
+    "best_val": 0.44117647409439087,
+    "epochs": 28
+  },
+  "historical_best_run": {
+    "best_epoch": 29,
+    "best_val": 0.5588,
+    "epochs": 49
+  },
+  "ablation": [
+    {
+      "name": "Full model (CNN-LSTM + Aug + CW)",
+      "variant": "cnn_lstm",
+      "augmentation": true,
+      "class_weights": true,
+      "regularisation": true,
+      "params": 249220,
+      "epochs_run": 28,
+      "best_val_direction_accuracy": 0.44117647409439087,
+      "test_direction_accuracy": 0.4411764705882353,
+      "test_power_mae": 2.9904156502555397,
+      "train_samples": 785
+    },
+    {
+      "name": "Without augmentation",
+      "variant": "cnn_lstm",
+      "augmentation": false,
+      "class_weights": true,
+      "regularisation": true,
+      "params": 249220,
+      "epochs_run": 21,
+      "best_val_direction_accuracy": 0.44117647409439087,
+      "test_direction_accuracy": 0.35294117647058826,
+      "test_power_mae": 3.2813062808092903,
+      "train_samples": 157
+    },
+    {
+      "name": "Without class weights",
+      "variant": "cnn_lstm",
+      "augmentation": true,
+      "class_weights": false,
+      "regularisation": true,
+      "params": 249220,
+      "epochs_run": 63,
+      "best_val_direction_accuracy": 0.5882353186607361,
+      "test_direction_accuracy": 0.35294117647058826,
+      "test_power_mae": 2.687981563455918,
+      "train_samples": 785
+    },
+    {
+      "name": "Without BatchNorm/Dropout",
+      "variant": "cnn_lstm",
+      "augmentation": true,
+      "class_weights": true,
+      "regularisation": false,
+      "params": 247940,
+      "epochs_run": 35,
+      "best_val_direction_accuracy": 0.5,
+      "test_direction_accuracy": 0.4117647058823529,
+      "test_power_mae": 2.950732301263248,
+      "train_samples": 785
+    },
+    {
+      "name": "CNN only (no LSTM)",
+      "variant": "cnn_only",
+      "augmentation": true,
+      "class_weights": true,
+      "regularisation": true,
+      "params": 76420,
+      "epochs_run": 46,
+      "best_val_direction_accuracy": 0.47058823704719543,
+      "test_direction_accuracy": 0.4117647058823529,
+      "test_power_mae": 2.688766661812277,
+      "train_samples": 785
+    },
+    {
+      "name": "LSTM only (no CNN)",
+      "variant": "lstm_only",
+      "augmentation": true,
+      "class_weights": true,
+      "regularisation": true,
+      "params": 200388,
+      "epochs_run": 46,
+      "best_val_direction_accuracy": 0.5,
+      "test_direction_accuracy": 0.38235294117647056,
+      "test_power_mae": 3.093034134191625,
+      "train_samples": 785
+    }
+  ]
+}

@@ -1,0 +1,80 @@
+[
+  {
+    "name": "Full model (CNN-LSTM + Aug + CW)",
+    "variant": "cnn_lstm",
+    "augmentation": true,
+    "class_weights": true,
+    "regularisation": true,
+    "params": 249220,
+    "epochs_run": 28,
+    "best_val_direction_accuracy": 0.44117647409439087,
+    "test_direction_accuracy": 0.4411764705882353,
+    "test_power_mae": 2.9904156502555397,
+    "train_samples": 785
+  },
+  {
+    "name": "Without augmentation",
+    "variant": "cnn_lstm",
+    "augmentation": false,
+    "class_weights": true,
+    "regularisation": true,
+    "params": 249220,
+    "epochs_run": 21,
+    "best_val_direction_accuracy": 0.44117647409439087,
+    "test_direction_accuracy": 0.35294117647058826,
+    "test_power_mae": 3.2813062808092903,
+    "train_samples": 157
+  },
+  {
+    "name": "Without class weights",
+    "variant": "cnn_lstm",
+    "augmentation": true,
+    "class_weights": false,
+    "regularisation": true,
+    "params": 249220,
+    "epochs_run": 63,
+    "best_val_direction_accuracy": 0.5882353186607361,
+    "test_direction_accuracy": 0.35294117647058826,
+    "test_power_mae": 2.687981563455918,
+    "train_samples": 785
+  },
+  {
+    "name": "Without BatchNorm/Dropout",
+    "variant": "cnn_lstm",
+    "augmentation": true,
+    "class_weights": true,
+    "regularisation": false,
+    "params": 247940,
+    "epochs_run": 35,
+    "best_val_direction_accuracy": 0.5,
+    "test_direction_accuracy": 0.4117647058823529,
+    "test_power_mae": 2.950732301263248,
+    "train_samples": 785
+  },
+  {
+    "name": "CNN only (no LSTM)",
+    "variant": "cnn_only",
+    "augmentation": true,
+    "class_weights": true,
+    "regularisation": true,
+    "params": 76420,
+    "epochs_run": 46,
+    "best_val_direction_accuracy": 0.47058823704719543,
+    "test_direction_accuracy": 0.4117647058823529,
+    "test_power_mae": 2.688766661812277,
+    "train_samples": 785
+  },
+  {
+    "name": "LSTM only (no CNN)",
+    "variant": "lstm_only",
+    "augmentation": true,
+    "class_weights": true,
+    "regularisation": true,
+    "params": 200388,
+    "epochs_run": 46,
+    "best_val_direction_accuracy": 0.5,
+    "test_direction_accuracy": 0.38235294117647056,
+    "test_power_mae": 3.093034134191625,
+    "train_samples": 785
+  }
+]

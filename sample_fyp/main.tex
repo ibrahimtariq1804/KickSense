@@ -1,0 +1,227 @@
+
+\documentclass[12pt]{report}
+\usepackage{fancyhdr}
+\usepackage[a4paper, margin=1in]{geometry}
+\usepackage{graphicx}
+\usepackage{fancyhdr}
+\usepackage{titlesec}
+\usepackage{tocloft}
+\usepackage{setspace}
+\usepackage{caption}
+\usepackage{float}
+\usepackage{longtable}
+\usepackage{lipsum}
+\usepackage{amsmath}
+\usepackage{enumitem}
+\usepackage{array}
+\usepackage{tabularx}
+\usepackage{needspace}
+\usepackage{adjustbox}
+\usepackage[utf8]{inputenc}
+
+% ----- Fix uneven word spacing -----
+\usepackage{microtype}       % Smooths word/letter spacing
+\sloppy                      % Prevents over-tight spacing
+\emergencystretch=3em        % Prevents stretched/ugly lines
+
+% ----- Remove extra space after punctuation -----
+\frenchspacing
+
+\renewcommand{\arraystretch}{1.4}
+\setlength{\tabcolsep}{6pt}
+\setlength{\parindent}{0pt}
+\setlength{\parskip}{6pt}
+\onehalfspacing
+
+% Hyperref
+\usepackage[
+    backref=page,
+    colorlinks=true,
+    linkcolor=black,
+    filecolor=black,
+    urlcolor=blue,
+    citecolor=blue
+]{hyperref}
+
+% Backref Formatting
+\renewcommand*{\backref}[1]{}
+\renewcommand*{\backrefalt}[4]{%
+  \ifcase #1 %
+  \or
+    (Cited on p.~#2)%
+  \else
+    (Cited on pp.~#2)%
+  \fi
+}
+
+\begin{document}
+
+% ---------------- Title Page ----------------
+\begin{titlepage}
+\pagenumbering{roman}
+\centering
+\vspace*{1cm}
+
+{\LARGE \textbf{Wheel Share App}}\\[2cm]
+
+\includegraphics[width=6cm]{BUI-Logo.jpg}\\[2cm]
+
+Izzah Malik\\
+\textbf{01-135211-039}\\[0.5cm]
+Umair Khan\\
+\textbf{01-135212-096}\\[1.5cm]
+
+
+Supervisor: Syed Junaid Hussain\\[1.5cm]
+
+{\large \textbf{Bachelor of Science in Information Technology}}\\[0.5cm]
+Department of Computer Science\\
+Bahria University, Islamabad\\[0.5cm]
+December 2025
+
+
+\vfill
+\end{titlepage}
+
+
+
+% ---------------- Certificate ----------------
+\chapter*{\centering Certificate}
+\addcontentsline{toc}{chapter}{Certificate}
+
+We acknowledge the work presented in the report titled \textbf{Wheel Share App}, authored by Ms. Izzah Malik and Mr. Umair Khan, as meeting the required standards for the partial fulfillment of the Bachelor of Science in Information Technology degree.\\[1.2cm]
+
+\textbf{Approved by:}\\[0.2cm]
+
+Supervisor: Syed Junaid Hussain\\
+\noindent\makebox[\textwidth]{\hrulefill}\\[0.2cm]
+
+Internal Examiner: Name of the Internal Examiner (Title)\\
+\noindent\makebox[\textwidth]{\hrulefill}\\[0.2cm]
+
+External Examiner: Name of the External Examiner (Title)\\
+\noindent\makebox[\textwidth]{\hrulefill}\\[0.2cm]
+
+Project Coordinator: Dr. Kabeer Ahmed Bhatti\\
+\noindent\makebox[\textwidth]{\hrulefill}\\[0.2cm]
+
+Head of Department: Dr. Muhammad Khurram Ehsan\\
+\noindent\makebox[\textwidth]{\hrulefill}\\[0.2cm]
+
+\textbf{December 15th, 2025}
+
+\clearpage
+
+% ---------------- Abstract ----------------
+\chapter*{Abstract}
+\addcontentsline{toc}{chapter}{Abstract}
+
+Wheel Share is a Flutter-based ride-sharing program that links drivers and riders going to comparable locations. It is powered by Supabase (PostgreSQL). Through shared trips, it encourages economical, convenient, and environmentally responsible transportation. The two main roles the application offers are Driver and User. While drivers may post rides, manage earnings, and accept offers, users can search for rides, issue offers, and monitor spending. Important components include an admin panel for monitoring rides, users, and alerts, ratings and reviews for trust, and an emergency alert system for safety. Wheel Share’s cross-platform functionality, secure authentication, and real-time updates make it a dependable and scalable solution for smart urban mobility, reducing traffic and promoting sustainable transportation.
+
+% ---------------- Acknowledgement ----------------
+\chapter*{Acknowledgement}
+\addcontentsline{toc}{chapter}{Acknowledgement}
+
+We are incredibly appreciative of Allah Almighty, the Most Merciful and Beneficent, for all His bounties during our academic careers. We are deeply grateful to our supervisor, Syed Junaid Hussain, for his important advice, steadfast support, and helpful criticism, all of which were essential to this project's successful conclusion. We would like to express our sincere gratitude to our parents, whose unwavering support and prayers made this accomplishment possible, as well as to our family and friends, who have always been a source of inspiration. We also thank Bahria University’s Department of Computer Science for providing a helpful learning environment. The support we have received from everyone is reflected in this initiative.
+
+\vspace{4\baselineskip}
+
+Izzah Malik, Umair Khan\\
+Islamabad, Pakistan
+
+\clearpage
+
+% ---------------- Quote Page ----------------
+\vspace*{\fill}
+\begin{center}
+\textit{“Learning is the spark that ignites change in the world.”}\\
+\hfill -- Malala Yousafzai
+\end{center}
+\vspace*{\fill}
+\clearpage
+
+% ---------------- TOC ----------------
+\tableofcontents
+\clearpage
+\listoffigures
+\clearpage
+\listoftables
+\cleardoublepage
+
+% ---------------- Acronyms and Abbreviations ----------------
+\chapter*{Acronyms and Abbreviations}
+\addcontentsline{toc}{chapter}{Acronyms and Abbreviations}
+
+\vspace{1cm}
+
+\begin{tabbing}
+\hspace{4cm}\=\hspace{8cm}\=\kill
+
+\textbf{JWT} \> JSON Web Token \\
+\textbf{API} \> Application Programming Interface \\
+\textbf{GUI} \> Graphical User Interface \\
+\textbf{UI} \> User Interface \\
+\textbf{VS Code} \> Visual Studio Code \\
+\textbf{IDE} \> Integrated Development Environment \\
+\textbf{RSL} \> Ride Sharing Layer \\
+\textbf{Supabase SQL} \> Supabase Structured Query Language \\
+\end{tabbing}
+\clearpage
+\pagenumbering{arabic}
+
+% ================= Chapter Header Setup =================
+
+\pagestyle{fancy}
+
+% Clear all headers/footers
+\fancyhf{}
+
+% Remove header rule on all pages by default
+\renewcommand{\headrulewidth}{0pt}
+
+% Define custom chapter mark
+\renewcommand{\chaptermark}[1]{%
+  \markboth{CHAPTER \thechapter\ -- #1}{}}
+
+% Right header (ONLY from page 2 of chapter)
+\fancyhead[R]{\leftmark}
+
+% Page number center footer
+\fancyfoot[C]{\thepage}
+
+% First page of each chapter (plain style)
+\fancypagestyle{plain}{
+  \fancyhf{}
+  \renewcommand{\headrulewidth}{0pt}
+  \fancyfoot[C]{\thepage}
+}
+% ========================================================
+
+
+
+% ---------------- Chapters ----------------
+\chapter{Introduction}
+\input{ch1_introduction}
+
+\chapter{Literature Review}
+\input{ch2_lit review}
+
+\chapter{Requirement Specifications}
+\input{ch3_req}
+
+\chapter{Design}
+\input{ch4_des}
+
+\chapter{System Implementation}
+\input{ch5_sysimp}
+
+\chapter{System Testing and Evaluation}
+\input{ch6_test}
+
+\chapter{Conclusion}
+\input{ch7_con}
+
+% ---------------- References ----------------
+\input{ref}
+
+\end{document}

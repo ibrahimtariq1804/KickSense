@@ -1,0 +1,86 @@
+\section{Summary of Work Completed}
+
+KickSense set out to determine whether the directional and power intent of a football penalty kick can be predicted from the kicker's body motion alone, using ordinary single camera video and consumer hardware. The work completed to date establishes that the answer for direction is yes, at a level meaningfully above chance, and that the answer for power is not yet, for reasons that are diagnosed rather than merely observed.
+
+The concrete deliverables are as follows. A corpus of three hundred and one penalty kick videos was collected from seventeen competitions and from dedicated local recording sessions, and two hundred and fifty nine of these clips were manually annotated with shot direction, shot power, outcome, ball placement, dominant foot, match and tournament in a single authoritative spreadsheet. Every clip was decoded to frames, giving forty one thousand four hundred and seventy six frames in total, and every frame was passed through MediaPipe Pose at model complexity two, yielding a pose in twenty five thousand one hundred and sixty seven of them. A preprocessing stage applies an explicit quality gate, hip centred translation, torso height scaling, fixed length temporal resampling and flattening, converting each surviving clip into a tensor of twenty six time steps by one hundred and thirty two features. Two hundred and twenty five sequences survive that gate and are partitioned by a deterministic stratified split into one hundred and fifty seven training, thirty four validation and thirty four test examples.
+
+On top of these artefacts a multi task network was built, combining one dimensional convolutions with stacked recurrent layers in a shared encoder that feeds a three way softmax direction head and a single unit sigmoid power head, totalling two hundred and forty nine thousand two hundred and twenty parameters. Training applies a weighted multi task objective, fivefold augmentation including label inverting horizontal mirroring, balanced class weights, dropout and batch normalisation, early stopping on validation accuracy and learning rate reduction on plateau. The resulting reference model attains 44.1 percent direction accuracy on the held out test split against a 33.3 percent random baseline, with weighted precision of 50.0 percent, weighted recall of 44.1 percent, a weighted F1 score of 41.4 percent and a power mean absolute error of 2.99 points on the one to ten scale. The highest validation direction accuracy recorded anywhere in the project is 55.9 percent and the highest test accuracy recorded in any saved log is 48.0 percent.
+
+Beyond the model, a controlled ablation study over six configurations trained under an identical seed and split establishes which design decisions contribute, a Streamlit application delivers interactive inference with a pose overlay so that a user can see what the model observed, and a FastAPI service exposes the same inference path over HTTP for the client planned in the next phase.
+
+\section{Conclusions Drawn}
+
+Four conclusions can be stated with confidence on the basis of the evidence in Chapter 4.
+
+The premise of the project holds. A model that observes nothing but a normalised skeleton sequence, with no access to pixels, ball position or context, predicts penalty direction at a rate a third better than chance. This confirms computationally what the perceptual literature established experimentally, namely that directional information is present in the kicker's body motion before ball contact.
+
+The architectural approach is sound but is not the limiting factor. Both halves of the hybrid encoder contribute measurably, and the full model outperforms every ablated variant on the test set. At the same time a convolution only variant with less than a third of the parameters reaches within three points of the full model, which indicates that additional capacity is not what the system currently lacks.
+
+Data, not modelling, is the binding constraint, and the constraint has a specific and addressable shape. The clearest single effect in the ablation is that of augmentation, which is a data quantity intervention rather than an architectural one. The pose detection ratio is 87.8 percent on locally recorded footage against 52.7 percent on broadcast footage, which identifies exactly where additional data should come from. Two hundred and twenty five sequences supports a model of this size only barely, and the overfitting visible in every training curve is the direct consequence.
+
+The evaluation protocol is currently the weakest part of the methodology. A thirty four example validation set moves by 2.9 percentage points per clip, and one ablation configuration exhibited a twenty three point gap between its validation and test accuracy within a single run. Improvements that appear real when measured on thirty four examples cannot be trusted to transfer, which explains why the runs with the best validation accuracy in the development history do not have the best test accuracy. Fixing this precedes any further architectural work, because without a reliable measurement there is no way to tell whether an architectural change helped.
+
+\section{Limitations}
+
+The limitations of the current system are stated here in full rather than distributed through the report, because an honest account of them is what makes the reported results interpretable.
+
+\begin{enumerate}[label=\roman*.]
+    \item The dataset contains two hundred and twenty five usable sequences, which is small for a temporal deep learning model, and every result in this report should be read with that in mind.
+    \item The direction classes are unbalanced at one hundred and seven left, ninety four right and fifty eight centre, reflecting a genuine property of the sport rather than a collection error.
+    \item Pose estimation fails on a substantial fraction of broadcast frames, chiefly because the kicker occupies a small part of the image, and twenty four clips were rejected outright by the quality gate for this reason.
+    \item The shot power annotation is a subjective human judgement whose distribution is strongly bimodal, and the power head consequently predicts close to the training mean rather than a graded value.
+    \item The ball placement annotation is collected for every clip but is not consumed by the model, so a source of supervision already present in the dataset is currently unused.
+    \item The system does not track the ball, does not analyse the goalkeeper, does not reconstruct the kick in three dimensions, and does not process live camera streams.
+    \item The validation split of thirty four examples is too small for reliable model selection, as demonstrated by the validation to test gaps reported in Chapter 4.
+    \item A configuration mismatch remains between the pose settings used in the training pipeline and those used in the interactive application, which is a correctness risk even though its magnitude has not been measured.
+    \item No systematic hyperparameter search has been performed, so all reported results come from a single manually chosen configuration.
+    \item The mobile client is designed but not implemented, and the model has not been converted for on device inference.
+\end{enumerate}
+
+\section{Future Work}
+
+The following items are the work actually planned for the remainder of the project. Each addresses a limitation identified above, and nothing is listed here that is not intended to be delivered.
+
+\subsection{Replace the Subjective Power Annotation with a Measurement}
+
+The power head cannot improve while its target is a bimodal human judgement. The plan is to derive power from the physical evidence already present in the footage by detecting the ball across consecutive frames immediately after contact and computing its displacement per unit time, then calibrating that displacement into a comparable scale using the player's torso height, which the preprocessing stage already computes for normalisation. This converts an ordinal opinion into a measurement grounded in the video, and it is the single highest value change available because it addresses the one output that currently does not work at all.
+
+\subsection{Introduce Stratified Cross Validation}
+
+The single held out validation split of thirty four examples is too small to select models reliably. The plan is to replace it with stratified k fold cross validation over the combined training and validation data, reporting the mean and standard deviation of accuracy across folds so that a claimed improvement can be distinguished from run to run variance. The held out test split remains untouched. This is listed second only because it is a prerequisite for evaluating everything that follows, since without it no subsequent change can be validated.
+
+\subsection{Systematic Hyperparameter Tuning}
+
+Every result reported in this document comes from one manually chosen configuration, and no search has been conducted. Once cross validation provides a trustworthy objective, a systematic search will be run over the learning rate, the sequence length, the dropout rates, the number and width of the convolutional and recurrent layers, the batch size and the relative weight of the power loss. The sequence length is of particular interest, since twenty six steps was chosen as a reasonable compromise rather than derived from evidence, and the ablation finding that a much smaller convolution only model performs nearly as well suggests the current capacity settings are not near an optimum.
+
+\subsection{Integrate Ball Placement as an Auxiliary Task}
+
+The label file already records ball placement across five regions of the goal for every clip, and this supervision is currently discarded. Adding a third head that predicts placement provides additional gradient signal to the shared encoder at no annotation cost, and because placement is a finer grained version of direction it should reinforce rather than compete with the primary task. This is a concrete use of data already collected.
+
+\subsection{Expand the Corpus, Prioritising Recorded Footage}
+
+The detection ratio comparison establishes that locally recorded clips are roughly forty percent more likely to yield a usable pose per frame than broadcast clips. Further recording sessions will therefore be prioritised over sourcing additional broadcast penalties, with deliberate variation in camera angle, kicker and lighting so that the additional volume also adds diversity. The immediate target is to raise the number of usable sequences substantially, with particular attention to the centre class, which has the least support.
+
+\subsection{Resolve the Training and Inference Configuration Mismatch}
+
+The pose estimation settings used when building the training data and those used in the interactive application are not identical, which risks a silent accuracy loss at inference time that no error message would reveal. The plan is to move every pose and preprocessing constant into a single shared configuration module that both paths import without local overrides, and then to measure the accuracy difference the current mismatch causes so that its impact is quantified rather than assumed.
+
+\subsection{Evaluate a Spatial Temporal Graph Network}
+
+Once the corpus is substantially larger, a spatial temporal graph convolutional network will be evaluated against the current hybrid, since encoding the skeleton's connectivity into the architecture is a well established advantage for skeleton action recognition. This is deliberately sequenced after the data expansion, because at the present dataset size the additional capacity of a graph network would increase overfitting rather than accuracy.
+
+\subsection{Deliver the Flutter Client}
+
+The FastAPI service layer already exposes inference over HTTP specifically so that a client can be built without reimplementing any preprocessing. The plan is to deliver a Flutter application for web and Android that records or selects a clip, submits it to the service, and displays the predicted direction with its confidence distribution alongside the power estimate. This is what turns the pipeline into a tool usable at the pitchside, which is the deployment scenario that motivated the project.
+
+\subsection{Investigate the Left Class Asymmetry}
+
+The confusion matrix shows that left shots are recovered in only three of fifteen test cases while right and centre are handled comparatively well, despite the mirror augmentation balancing left and right by count. The plan is to determine whether the left examples are disproportionately drawn from harder source footage, for instance from camera angles that foreshorten the run up, by cross referencing per clip detection ratios and source competitions against per clip prediction correctness. If the cause is confirmed the remedy is targeted data collection rather than an architectural change.
+
+\section{Closing Remarks}
+
+The state of KickSense at the end of this phase is a complete and reproducible pipeline that turns an ordinary penalty video into a direction prediction meaningfully better than chance, together with a power estimate that does not yet work and a clear diagnosis of why. The expensive and irreversible part of the project, namely the construction and annotation of a corpus that does not exist publicly, is finished, and every subsequent experiment operates on stored artefacts against a fixed split at negligible cost.
+
+The most valuable outcome of this phase is arguably not the accuracy figure but the clarity of the constraint. The ablation study, the source split detection analysis and the validation to test gaps together identify data quantity and evaluation reliability, rather than model architecture, as what limits the system. That is a more useful position to be in than an unexplained result would be, because it makes the remaining work specific: measure power instead of judging it, validate with cross validation instead of a single small split, record more footage where the pose extractor actually succeeds, and use the supervision already sitting unused in the label file.
+
+\clearpage

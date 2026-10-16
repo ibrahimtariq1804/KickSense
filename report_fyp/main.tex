@@ -1,0 +1,181 @@
+\documentclass[12pt]{report}
+\usepackage{fancyhdr}
+\usepackage[a4paper, margin=1in]{geometry}
+\usepackage{graphicx}
+\usepackage{titlesec}
+\usepackage{tocloft}
+\usepackage{setspace}
+\usepackage{caption}
+\usepackage{float}
+\usepackage{longtable}
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{enumitem}
+\usepackage{array}
+\usepackage{tabularx}
+\usepackage{needspace}
+\usepackage{adjustbox}
+\usepackage{multirow}
+\usepackage[utf8]{inputenc}
+
+% ----- Fix uneven word spacing -----
+\usepackage{microtype}
+\sloppy
+\emergencystretch=3em
+
+% ----- Remove extra space after punctuation -----
+\frenchspacing
+
+\renewcommand{\arraystretch}{1.4}
+\setlength{\tabcolsep}{6pt}
+\setlength{\parindent}{0pt}
+\setlength{\parskip}{6pt}
+\onehalfspacing
+
+% Hyperref
+\usepackage[
+    backref=page,
+    colorlinks=true,
+    linkcolor=black,
+    filecolor=black,
+    urlcolor=blue,
+    citecolor=blue
+]{hyperref}
+
+% Backref Formatting
+\renewcommand*{\backref}[1]{}
+\renewcommand*{\backrefalt}[4]{%
+  \ifcase #1 %
+  \or
+    (Cited on p.~#2)%
+  \else
+    (Cited on pp.~#2)%
+  \fi
+}
+
+\graphicspath{{figures/}}
+
+\begin{document}
+
+% ---------------- Title Page ----------------
+\begin{titlepage}
+\pagenumbering{roman}
+\centering
+\vspace*{1cm}
+
+{\LARGE \textbf{KickSense: Intelligent Penalty Kick Analysis Using Pose Estimation}}\\[2cm]
+
+\includegraphics[width=6cm]{BUI-Logo.jpg}\\[2cm]
+
+Ashir Ijaz\\
+\textbf{01-135231-017}\\[0.5cm]
+Ibrahim Tariq\\
+\textbf{01-135231-037}\\[1.5cm]
+
+
+Supervisor: Ms. Zainab Iftikhar\\[1.5cm]
+
+{\large \textbf{Bachelor of Science in Computer Science}}\\[0.5cm]
+Department of Computer Science\\
+Bahria University, Islamabad\\[0.5cm]
+September 2026
+
+
+\vfill
+\end{titlepage}
+
+
+% ---------------- TOC ----------------
+\tableofcontents
+\clearpage
+\listoffigures
+\clearpage
+\listoftables
+\cleardoublepage
+
+% ---------------- Acronyms and Abbreviations ----------------
+\chapter*{Acronyms and Abbreviations}
+\addcontentsline{toc}{chapter}{Acronyms and Abbreviations}
+
+\vspace{1cm}
+
+\begin{tabbing}
+\hspace{4cm}\=\hspace{8cm}\=\kill
+
+\textbf{API} \> Application Programming Interface \\
+\textbf{BN} \> Batch Normalisation \\
+\textbf{CE} \> Categorical Cross Entropy \\
+\textbf{CNN} \> Convolutional Neural Network \\
+\textbf{Conv1D} \> One Dimensional Convolution \\
+\textbf{CV} \> Computer Vision \\
+\textbf{FPS} \> Frames Per Second \\
+\textbf{FYP} \> Final Year Project \\
+\textbf{GUI} \> Graphical User Interface \\
+\textbf{HLD} \> High Level Design \\
+\textbf{IDE} \> Integrated Development Environment \\
+\textbf{JSON} \> JavaScript Object Notation \\
+\textbf{LLD} \> Low Level Design \\
+\textbf{LSTM} \> Long Short Term Memory \\
+\textbf{MAE} \> Mean Absolute Error \\
+\textbf{mIoU} \> Mean Intersection over Union \\
+\textbf{MSE} \> Mean Squared Error \\
+\textbf{RMSE} \> Root Mean Squared Error \\
+\textbf{ReLU} \> Rectified Linear Unit \\
+\textbf{RGB} \> Red Green Blue \\
+\textbf{ST-GCN} \> Spatial Temporal Graph Convolutional Network \\
+\textbf{TFLite} \> TensorFlow Lite \\
+\textbf{UI} \> User Interface \\
+\textbf{VS Code} \> Visual Studio Code \\
+\end{tabbing}
+\clearpage
+\pagenumbering{arabic}
+
+% ================= Chapter Header Setup =================
+
+\pagestyle{fancy}
+
+% Clear all headers/footers
+\fancyhf{}
+
+% Remove header rule on all pages by default
+\renewcommand{\headrulewidth}{0pt}
+
+% Define custom chapter mark
+\renewcommand{\chaptermark}[1]{%
+  \markboth{CHAPTER \thechapter\ -- #1}{}}
+
+% Right header (ONLY from page 2 of chapter)
+\fancyhead[R]{\leftmark}
+
+% Page number center footer
+\fancyfoot[C]{\thepage}
+
+% First page of each chapter (plain style)
+\fancypagestyle{plain}{
+  \fancyhf{}
+  \renewcommand{\headrulewidth}{0pt}
+  \fancyfoot[C]{\thepage}
+}
+% ========================================================
+
+
+% ---------------- Chapters ----------------
+\chapter{Introduction}
+\input{ch1_introduction}
+
+\chapter{Literature Review}
+\input{ch2_literature}
+
+\chapter{Methodology}
+\input{ch3_methodology}
+
+\chapter{Dataset and Experimental Evaluation}
+\input{ch4_dataset}
+
+\chapter{Conclusion}
+\input{ch5_conclusion}
+
+% ---------------- References ----------------
+\input{ref}
+
+\end{document}

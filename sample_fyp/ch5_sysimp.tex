@@ -1,0 +1,92 @@
+The chapter explains the steps that the WheelShare system implementation process will follow, how the conceptual design may be transformed into a completely effective, intelligent carpooling service. It explains the development of the frontend, backend and database parts, their integration, and testing to address the nonfunctional and functional requirements. Its building system is based on Flutter and cross-platform mobile and web application but Supabase is the backend service, which supports authentication, storage, real-time updates, and database management. 
+
+\section{System Architecture}
+WheelShare architecture is a programmed system to be implemented as a modular and scalable system, whereby there is an efficient communication between components. It is applicable to visualization in form of three major layers:  
+\begin{itemize}
+    \item \textbf{Frontend (Flutter):} Its front is backed up by Flutter and provides role based dashboards to Riders, Drivers and Administrators. It enjoys simple structure; thus navigation and real-time updates of rides and responsive platforms of Android platforms, and Web platform can be easily navigated.
+
+    \item \textbf{Backend Services (Supabase):} Its back-end is Supabase that is an engine and hosted by the following fundamental services: authentication, database management (PostgreSQL with Row-Level Security), file storage and realtime sync.  
+ 
+    \item \textbf{Resource (Individual channels):} Live-time communication layer will deliver the live time information on the ride offers or confirmations, emergency notification and the state of the completion of the ride, which will give the user a perfect experience and data synchronization, in real-time. 
+ 
+\end{itemize}
+
+\section{Tools and Technologies}
+The WheelShare solution is based on a new technology stack to provide efficiency, performance, and scalability. 
+
+\begin{itemize}
+    \item \textbf{Front-end Development:} Flutter (for Android, and Web) 
+    \item \textbf{Backend Services:} Supabase (Auth, PostgreSQL, Storage, Realtime)
+    
+    \item \textbf{Database:} Secure unencrypted role-based data access in postgreSQL using Row-Level security (RLS). 
+    \item \textbf{Programming Languages:} Dart (Frontend), SQL (Backend Policies 
+    \item \textbf{IDE:} Visual Studio Code / Android Studio 
+\end{itemize}
+    
+
+\section{Development Environment }
+To ensure compatibility and stable performance, the following environment was used during development and testing: 
+
+\begin{itemize}
+    \item \textbf{Operating System:} Windows 11 
+    \item \textbf{Testing Devices:} Android Emulator
+    \item \textbf{SDKs:} Flutter 3.x, Dart 3.x 
+    \item \textbf{Database:} Supabase PostgreSQL 15.x 
+    \item \textbf{APIs:} Supabase REST endpoints and Realtime subscriptions 
+    \item \textbf{Authentication:} Email and Password-based authentication via Supabase Auth  
+    \end{itemize}
+\section{Processing Logic / Algorithms}
+The internal working of WheelShare follows several logical processes and algorithms that power its main features.
+
+\subsection{Login and Role Routing}
+\begin{enumerate}
+    \item Validate user credentials via Supabase Auth.
+    \item Retrieve user role from the Profiles table.
+    \item Redirect the user to the corresponding dashboard Rider, Driver, or Admin.
+\end{enumerate}
+
+\subsection{Ride Posting and Offer Management}
+\begin{enumerate}
+    \item Rider creates a new ride post including source, destination, city, address, and date.
+    \item Drivers can search available rides and send offers to Riders.
+    \item Riders can accept or reject offers; once confirmed, rides are updated in the database.
+    \item Realtime notifications are triggered upon any change in offer status.
+\end{enumerate}
+
+\subsection{Earnings and Spending Summary}
+\begin{enumerate}
+    \item Driver earnings and Rider spending are extracted from ride transaction records.
+    \item Summaries are computed based on a selected date range.
+    
+\end{enumerate}
+
+\subsection{Emergency Alert Handling}
+\begin{enumerate}
+    \item The user is able to activate an emergency alarm inside the app.
+    \item The notification is immediately forwarded to Administrators and close registered contacts through Realtime notifications.
+    \item All the alerts are documented in the database to be audited and analysed in future.
+\end{enumerate}
+
+\section{Integration with Supabase}
+All the parts of the system interact with each other smoothly using the Flutter client SDK of Supabase. Supabase replaces a custom backend server and handles:
+
+\begin{itemize}
+    \item Authentication
+    \item Database operations,File storage
+    \item Realtime synchronization
+\end{itemize}
+
+\section{Testing and Deployment}
+WheelShare system was thoroughly tested to ensure it is stable, secure and easy to use.
+
+\subsection{Testing}
+To guarantee system dependability, testing was done at several levels. Workflows for ride posting, offer acceptance, and authentication were all tested. Integration testing confirmed the accuracy of earnings and spending summaries as well as the processing of emergency alerts. UI testing concentrated on search filter efficacy, dashboard accessibility, and navigation. 
+
+\subsection{Deployment}
+Android platforms are used for mobile deployment. WheelShare's online version is hosted by Firebase Hosting or Supabase Hosting. GitHub Actions is used to manage Continuous Integration and Deployment (CI/CD), which guarantees automated builds, upgrades, and seamless delivery of new features.
+
+\section{Security Measures}
+WheelShare uses a number of security procedures to guarantee data safety. To ensure secrecy, sensitive data including login credentials is encrypted. While Row Level Security (RLS) stops unwanted access at the database layer, authentication and role-based access control limit users to the functions permitted for their roles. Additionally, the system keeps track of important activities like ride postings and warnings in real time for auditing purposes. Furthermore, secure HTTPS encrypted APIs are used for all connection between the app and Supabase to guarantee secure data transfer.
+
+
+

@@ -1,16 +1,17 @@
 import streamlit as st
 import cv2
-import mediapipe as mp
 import numpy as np
 import tensorflow as tf
 import tempfile
 import os
 
+from scripts.contact_detector import detect_contact_and_extract_sequence
+
 # ============================================================
 # PAGE CONFIG
 # ============================================================
 st.set_page_config(
-    page_title="KickSense",
+    page_title="KickSense — AI Penalty Anticipation",
     page_icon="⚽",
     layout="wide"
 )
@@ -22,26 +23,45 @@ st.markdown("""
 <style>
     .main-header {
         text-align: center;
-        padding: 20px;
-        background: linear-gradient(135deg, #1F3864, #2E75B6);
-        border-radius: 10px;
+        padding: 24px;
+        background: linear-gradient(135deg, #091224, #13274f);
+        border: 1px solid rgba(255,255,255,0.1);
+        border-radius: 12px;
         color: white;
-        margin-bottom: 20px;
+        margin-bottom: 24px;
     }
     .metric-card {
-        background: #f0f4f8;
+        background: #0f182c;
         border-radius: 10px;
-        padding: 20px;
+        padding: 18px;
         text-align: center;
-        border-left: 5px solid #2E75B6;
+        border: 1px solid rgba(255,255,255,0.08);
+        color: white;
     }
     .prediction-box {
-        background: linear-gradient(135deg, #1F3864, #2E75B6);
+        background: linear-gradient(135deg, #10b981 0%, #059669 100%);
         border-radius: 10px;
         padding: 20px;
         color: white;
         text-align: center;
         margin: 10px 0;
+        box-shadow: 0 8px 24px -4px rgba(16, 185, 129, 0.4);
+    }
+    .power-box {
+        background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+        border-radius: 10px;
+        padding: 20px;
+        color: white;
+        text-align: center;
+        margin: 10px 0;
+        box-shadow: 0 8px 24px -4px rgba(245, 158, 11, 0.4);
+    }
+    .telemetry-box {
+        background: rgba(255, 255, 255, 0.04);
+        border: 1px solid rgba(255,255,255,0.1);
+        border-radius: 8px;
+        padding: 12px;
+        text-align: center;
     }
 </style>
 """, unsafe_allow_html=True)
@@ -51,9 +71,9 @@ st.markdown("""
 # ============================================================
 st.markdown("""
 <div class="main-header">
-    <h1>⚽ KickSense</h1>
-    <p>Intelligent Penalty Kick Analysis Using Pose Estimation</p>
-    <p><small>Bahria University — Final Year Project</small></p>
+    <h1>⚽ KickSense AI</h1>
+    <p style="font-size: 1.1rem; color: #38bdf8;">Penalty Kick Anticipation & Striker Biomechanics Platform</p>
+    <p><small style="color: #94a3b8;">Bahria University Islamabad · Final Year Project · Ashir Ijaz & Ibrahim Tariq</small></p>
 </div>
 """, unsafe_allow_html=True)
 
@@ -68,94 +88,32 @@ def load_model():
     return model
 
 # ============================================================
-# HELPER FUNCTIONS
-# ============================================================
-def extract_frames(video_path, max_frames=26):
-    cap = cv2.VideoCapture(video_path)
-    total = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
-    indices = np.linspace(0, total - 1, max_frames, dtype=int)
-    frames = []
-    for idx in indices:
-        cap.set(cv2.CAP_PROP_POS_FRAMES, idx)
-        ret, frame = cap.read()
-        if ret:
-            frames.append(frame)
-    cap.release()
-    return frames
-
-def get_keypoints_from_frame(frame):
-    mp_pose = mp.solutions.pose
-    mp_drawing = mp.solutions.drawing_utils
-    mp_drawing_styles = mp.solutions.drawing_styles
-
-    with mp_pose.Pose(
-        static_image_mode=True,
-        model_complexity=1,
-        min_detection_confidence=0.3
-    ) as pose:
-        image_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-        results = pose.process(image_rgb)
-
-        if results.pose_landmarks:
-            annotated = image_rgb.copy()
-            mp_drawing.draw_landmarks(
-                annotated,
-                results.pose_landmarks,
-                mp_pose.POSE_CONNECTIONS,
-                landmark_drawing_spec=mp_drawing_styles.get_default_pose_landmarks_style()
-            )
-            kp = []
-            for lm in results.pose_landmarks.landmark:
-                kp.append([lm.x, lm.y, lm.z, lm.visibility])
-            return np.array(kp), annotated
-
-        return None, cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-
-def normalize_keypoints(keypoints):
-    normalized = keypoints.copy()
-    left_hip = keypoints[23, :2]
-    right_hip = keypoints[24, :2]
-    hip_center = (left_hip + right_hip) / 2
-    left_shoulder = keypoints[11, :2]
-    right_shoulder = keypoints[12, :2]
-    shoulder_center = (left_shoulder + right_shoulder) / 2
-    torso_height = np.linalg.norm(shoulder_center - hip_center)
-    if torso_height < 1e-6:
-        torso_height = 1.0
-    normalized[:, 0] = (keypoints[:, 0] - hip_center[0]) / torso_height
-    normalized[:, 1] = (keypoints[:, 1] - hip_center[1]) / torso_height
-    return normalized
-
-# ============================================================
 # SIDEBAR
 # ============================================================
 with st.sidebar:
     st.markdown("### ⚽ About KickSense")
     st.markdown("""
-    KickSense analyzes a footballer's body pose
-    during a penalty kick and predicts:
+    KickSense isolates a striker's approach run-up and predicts shot trajectory **strictly before or at foot-ball contact**:
 
-    - 🎯 **Shot Direction** (Left/Center/Right)
-    - 💪 **Shot Power** (Scale 1-10)
-
-    **How it works:**
-    1. Upload a penalty kick video
-    2. MediaPipe extracts 33 body keypoints
-    3. CNN-LSTM model analyzes the pose
-    4. Prediction is displayed instantly
+    - 🎯 **Direction Anticipation** (Left / Center / Right)
+    - 💪 **Power Rating** (1.0 to 10.0 scale)
+    - 🦴 **Striker Biomechanics** (Torso lean, hip angle, plant offset)
     """)
     st.markdown("---")
-    st.markdown("### 📊 Model Info")
+    st.markdown("### 📊 Verified Dataset & Metrics")
     st.markdown("""
-    - **Architecture:** CNN-LSTM
-    - **Accuracy:** 50%
-    - **Training clips:** 117
-    - **Keypoints:** 33 per frame
-    - **Sequence:** 26 frames
+    - **Total Labeled Clips:** 460
+    - **Clean Sequences:** 426
+    - **Architecture:** Multi-Scale Inception + BiLSTM
+    - **Direction Accuracy:** **53.1%** (vs 33.3% random)
+    - **Weighted Precision:** **60.0%**
+    - **Center Precision:** **78.6%**
+    - **Shot Power MAE:** **2.12**
+    - **Input Contract:** (26 frames, 132 features)
     """)
     st.markdown("---")
-    st.markdown("**Ashir Ijaz & Ibrahim Tariq**")
-    st.markdown("*Supervisor: Ms. Zainab Iftikhar*")
+    st.markdown("**Supervisor:** Ms. Zainab Iftikhar")
+    st.markdown("**Institution:** Bahria University Islamabad")
 
 # ============================================================
 # MAIN CONTENT
@@ -165,191 +123,149 @@ col1, col2 = st.columns([1, 1])
 with col1:
     st.markdown("### 📤 Upload Penalty Kick Video")
     uploaded_file = st.file_uploader(
-        "Upload a penalty kick clip (.mp4)",
+        "Upload penalty kick video (.mp4, .mov, .avi)",
         type=['mp4', 'avi', 'mov'],
-        help="Upload a short penalty kick video clip"
+        help="Supports broadcast penalties or smartphone recordings"
     )
     if uploaded_file:
         st.video(uploaded_file)
 
 with col2:
-    st.markdown("### 📋 Instructions")
+    st.markdown("### 📋 Smart Contact Detection")
     st.info("""
-    **For best results:**
-    - Upload a clip showing the full run-up
-    - Make sure the striker is clearly visible
-    - Camera should show striker + goalkeeper + goal
-    - Clip length: 5-15 seconds recommended
+    **Automatic Temporal Alignment:**
+    - Full penalty video clips are automatically analyzed.
+    - MediaPipe tracks 33 3D skeletal landmarks.
+    - System calculates ankle velocity peaks and plant foot deceleration to isolate the foot-ball strike moment ($t \\le \\text{strike}$).
+    - Trajectory features are normalized to hip center and torso height scale.
     """)
-    st.markdown("### 🎯 What We Predict")
+    st.markdown("### 🎯 System Predictions")
     c1, c2 = st.columns(2)
     with c1:
-        st.metric("Shot Direction", "Left / Center / Right")
+        st.metric("Direction Anticipation", "Left / Center / Right")
     with c2:
-        st.metric("Shot Power", "Scale 1-10")
+        st.metric("Power Rating", "Scale 1.0 – 10.0")
 
 # ============================================================
-# PREDICTION
+# PREDICTION PIPELINE
 # ============================================================
 if uploaded_file:
-    if st.button("🔍 Analyze Penalty Kick", type="primary",
-                 use_container_width=True):
-
-        with st.spinner("Analyzing penalty kick..."):
+    if st.button("🔍 Analyze Penalty Kick", type="primary", use_container_width=True):
+        with st.spinner("Extracting kinematics and detecting foot-ball contact..."):
 
             # Save uploaded file temporarily
-            tfile = tempfile.NamedTemporaryFile(
-                delete=False, suffix='.mp4'
-            )
-            tfile.write(uploaded_file.read())
-            video_path = tfile.name
+            ext = os.path.splitext(uploaded_file.name)[1] or '.mp4'
+            with tempfile.NamedTemporaryFile(delete=False, suffix=ext) as tfile:
+                tfile.write(uploaded_file.read())
+                video_path = tfile.name
 
-            # Load model
-            model = load_model()
+            try:
+                # 1. Run Smart Contact & Pose Detection
+                res = detect_contact_and_extract_sequence(video_path, target_frames=26)
+                
+                if res is None:
+                    st.error("Could not detect striker's body pose. Please provide a clear clip showing the full striker body.")
+                else:
+                    # 2. Model Inference
+                    model = load_model()
+                    seq = res['sequence'].reshape(1, 26, 132)
+                    predictions = model.predict(seq, verbose=0)
 
-            # Progress
-            progress = st.progress(0)
-            status = st.empty()
+                    direction_probs = predictions[0][0] # Left, Center, Right
+                    power_norm = float(predictions[1][0][0])
+                    power_pred = float(np.clip(power_norm * 10.0, 1.0, 10.0))
 
-            # Extract frames
-            status.text("Extracting frames...")
-            frames = extract_frames(video_path, max_frames=26)
-            progress.progress(25)
+                    direction_labels = ['Left', 'Center', 'Right']
+                    direction_idx = int(np.argmax(direction_probs))
+                    direction = direction_labels[direction_idx]
+                    confidence = float(direction_probs[direction_idx] * 100.0)
 
-            # Extract keypoints
-            status.text("Estimating pose...")
-            keypoints_list = []
-            best_frame = None
-
-            for frame in frames:
-                kp, annotated = get_keypoints_from_frame(frame)
-                if kp is not None:
-                    kp_norm = normalize_keypoints(kp)
-                    keypoints_list.append(kp_norm.flatten())
-                    if best_frame is None:
-                        best_frame = annotated
-
-            progress.progress(60)
-
-            if len(keypoints_list) < 5:
-                st.error("Could not detect pose. Please try a clearer video.")
-            else:
-                status.text("Processing sequences...")
-                while len(keypoints_list) < 26:
-                    keypoints_list.append(keypoints_list[-1])
-                keypoints_list = keypoints_list[:26]
-
-                sequence = np.array(keypoints_list)
-                sequence = sequence.reshape(1, 26, 132)
-                progress.progress(80)
-
-                # Predict
-                status.text("Predicting...")
-                predictions = model.predict(sequence, verbose=0)
-                direction_probs = predictions[0][0]
-                power_pred = predictions[1][0][0] * 10
-
-                direction_labels = ['Left', 'Center', 'Right']
-                direction_idx = np.argmax(direction_probs)
-                direction = direction_labels[direction_idx]
-                confidence = direction_probs[direction_idx] * 100
-
-                progress.progress(100)
-                status.empty()
-                progress.empty()
-
-                # ============================================================
-                # RESULTS
-                # ============================================================
-                st.markdown("---")
-                st.markdown("## 🎯 Prediction Results")
-
-                col1, col2, col3 = st.columns(3)
-
-                with col1:
-                    direction_emoji = {
-                        'Left': '⬅️',
-                        'Center': '⬆️',
-                        'Right': '➡️'
-                    }
-                    st.markdown(f"""
-                    <div class="prediction-box">
-                        <h2>{direction_emoji[direction]}</h2>
-                        <h3>Shot Direction</h3>
-                        <h1>{direction}</h1>
-                        <p>Confidence: {confidence:.1f}%</p>
-                    </div>
-                    """, unsafe_allow_html=True)
-
-                with col2:
-                    if power_pred >= 7:
-                        power_color = "#1a5c38"
-                        power_label = "High Power"
-                    elif power_pred >= 4:
-                        power_color = "#8B6914"
-                        power_label = "Medium Power"
+                    if power_pred >= 7.5:
+                        power_label = "High Power (Driven Strike)"
+                    elif power_pred >= 4.5:
+                        power_label = "Medium Power (Balanced)"
                     else:
-                        power_color = "#8B1A1A"
-                        power_label = "Low Power"
+                        power_label = "Low Power (Finesse Placement)"
 
-                    st.markdown(f"""
-                    <div style="background: {power_color};
-                         border-radius: 10px; padding: 20px;
-                         color: white; text-align: center;">
-                        <h2>💪</h2>
-                        <h3>Shot Power</h3>
-                        <h1>{power_pred:.1f}/10</h1>
-                        <p>{power_label}</p>
-                    </div>
-                    """, unsafe_allow_html=True)
+                    # ============================================================
+                    # RESULTS DISPLAY
+                    # ============================================================
+                    st.markdown("---")
+                    st.markdown("## 🎯 Prediction Results")
 
-                with col3:
-                    st.markdown(f"""
-                    <div class="metric-card">
-                        <h2>📊</h2>
-                        <h3>Probabilities</h3>
-                        <p>⬅️ Left: {direction_probs[0]*100:.1f}%</p>
-                        <p>⬆️ Center: {direction_probs[1]*100:.1f}%</p>
-                        <p>➡️ Right: {direction_probs[2]*100:.1f}%</p>
-                    </div>
-                    """, unsafe_allow_html=True)
+                    col_dir, col_pwr, col_prob = st.columns(3)
 
-                # Pose visualization
-                st.markdown("---")
-                st.markdown("### 🦴 Pose Estimation Visualization")
+                    with col_dir:
+                        direction_emoji = {'Left': '⬅️', 'Center': '⬆️', 'Right': '➡️'}
+                        st.markdown(f"""
+                        <div class="prediction-box">
+                            <h1 style="font-size: 3rem; margin: 0;">{direction_emoji[direction]}</h1>
+                            <h3 style="margin-top: 5px;">Predicted Direction</h3>
+                            <h2 style="font-size: 2.2rem; font-weight: bold; margin: 5px 0;">{direction.upper()}</h2>
+                            <p style="font-size: 1.1rem; opacity: 0.95;">Confidence: <strong>{confidence:.1f}%</strong></p>
+                        </div>
+                        """, unsafe_allow_html=True)
 
-                if best_frame is not None:
-                    st.image(
-                        best_frame,
-                        caption="Detected skeletal pose on penalty kick frame",
-                        use_column_width=True
-                    )
+                    with col_pwr:
+                        st.markdown(f"""
+                        <div class="power-box">
+                            <h1 style="font-size: 3rem; margin: 0;">💪</h1>
+                            <h3 style="margin-top: 5px;">Shot Power Rating</h3>
+                            <h2 style="font-size: 2.2rem; font-weight: bold; margin: 5px 0;">{power_pred:.1f} / 10</h2>
+                            <p style="font-size: 1.1rem; opacity: 0.95;">{power_label}</p>
+                        </div>
+                        """, unsafe_allow_html=True)
 
-                # Direction probability bars
-                st.markdown("### 📊 Direction Probability Breakdown")
-                col1, col2, col3 = st.columns(3)
-                with col1:
-                    st.metric("⬅️ Left", f"{direction_probs[0]*100:.1f}%")
-                    st.progress(float(direction_probs[0]))
-                with col2:
-                    st.metric("⬆️ Center", f"{direction_probs[1]*100:.1f}%")
-                    st.progress(float(direction_probs[1]))
-                with col3:
-                    st.metric("➡️ Right", f"{direction_probs[2]*100:.1f}%")
-                    st.progress(float(direction_probs[2]))
+                    with col_prob:
+                        st.markdown(f"""
+                        <div class="metric-card">
+                            <h3>📊 Class Probabilities</h3>
+                            <hr style="border-color: rgba(255,255,255,0.1); margin: 10px 0;">
+                            <p style="font-size: 1.05rem;">⬅️ <strong>Left:</strong> {direction_probs[0]*100:.1f}%</p>
+                            <p style="font-size: 1.05rem;">⬆️ <strong>Center:</strong> {direction_probs[1]*100:.1f}%</p>
+                            <p style="font-size: 1.05rem;">➡️ <strong>Right:</strong> {direction_probs[2]*100:.1f}%</p>
+                        </div>
+                        """, unsafe_allow_html=True)
 
-            # Cleanup
-            os.unlink(video_path)
+                    # Strike Contact Skeleton
+                    st.markdown("---")
+                    st.markdown(f"### 🦴 Contact Frame Skeletal Pose (Frame #{res['strike_frame_idx']})")
+
+                    if res['strike_image'] is not None:
+                        rgb_strike = cv2.cvtColor(res['strike_image'], cv2.COLOR_BGR2RGB)
+                        st.image(
+                            rgb_strike,
+                            caption=f"Strike moment isolated at frame {res['strike_frame_idx']} of {res['total_frames']} ({res['fps']:.1f} FPS)",
+                            use_column_width=True
+                        )
+
+                    # Biomechanics Telemetry
+                    st.markdown("### 📐 Striker Biomechanics Diagnostics")
+                    bio = res['biomechanics']
+                    b1, b2, b3, b4 = st.columns(4)
+                    with b1:
+                        st.metric("Torso Lean Angle", f"{bio['torso_lean_deg']:.1f}°", bio['torso_lean_label'])
+                    with b2:
+                        st.metric("Pelvis Rotation", f"{bio['pelvis_angle_deg']:.1f}°", bio['pelvis_angle_label'])
+                    with b3:
+                        st.metric("Peak Ankle Speed", f"{bio['kicking_ankle_peak_speed']:.0f} px/s", "Swing Momentum")
+                    with b4:
+                        st.metric("Plant Foot Offset", f"{bio['plant_to_ball_dist']:.2f}", "Support Stance")
+
+            finally:
+                if os.path.exists(video_path):
+                    try:
+                        os.unlink(video_path)
+                    except OSError:
+                        pass
 
 # ============================================================
 # FOOTER
 # ============================================================
 st.markdown("---")
 st.markdown("""
-<div style="text-align: center; color: gray; padding: 10px;">
-    <p>KickSense — Bahria University Islamabad |
-    Department of Computer Science | Session 2026-2027</p>
-    <p>Ashir Ijaz (01-135231-017) |
-    Ibrahim Tariq (01-135231-037)</p>
+<div style="text-align: center; color: #64748b; padding: 10px;">
+    <p>KickSense — Bahria University Islamabad | Department of Computer Science</p>
+    <p>Ashir Ijaz (01-135231-017) | Ibrahim Tariq (01-135231-037) | Supervisor: Ms. Zainab Iftikhar</p>
 </div>
 """, unsafe_allow_html=True)

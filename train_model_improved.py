@@ -1,26 +1,31 @@
+import os
 import numpy as np
 import tensorflow as tf
 from tensorflow.keras.models import Model
 from tensorflow.keras.layers import (
-    Input, Conv1D, MaxPooling1D, LSTM,
-    Dense, Dropout, BatchNormalization
+    Input, Conv1D, MaxPooling1D, LSTM, Bidirectional,
+    Dense, Dropout, BatchNormalization, concatenate,
+    GlobalAveragePooling1D, GlobalMaxPooling1D
 )
 from tensorflow.keras.optimizers import Adam
 from tensorflow.keras.callbacks import EarlyStopping, ModelCheckpoint, ReduceLROnPlateau
 from tensorflow.keras.utils import to_categorical
+from tensorflow.keras.regularizers import l2
 from sklearn.utils.class_weight import compute_class_weight
+from sklearn.metrics import accuracy_score, classification_report, confusion_matrix, mean_absolute_error
+import matplotlib
+matplotlib.use('Agg')
 import matplotlib.pyplot as plt
-import os
+import seaborn as sns
 
-os.makedirs("outputs/model", exist_ok=True)
+# Set seeds for reproducibility
+np.random.seed(42)
+tf.random.set_seed(42)
 
 print("=== KICKSENSE IMPROVED MODEL TRAINING ===\n")
 
-# ============================================================
-# STEP 1: LOAD DATA
-# ============================================================
+# 1. Load data
 print("STEP 1: Loading preprocessed data...")
-
 X_train = np.load("data/processed/X_train.npy")
 X_val = np.load("data/processed/X_val.npy")
 X_test = np.load("data/processed/X_test.npy")
@@ -33,253 +38,177 @@ yp_train = np.load("data/processed/y_power_train.npy")
 yp_val = np.load("data/processed/y_power_val.npy")
 yp_test = np.load("data/processed/y_power_test.npy")
 
-print(f"Training samples:   {len(X_train)}")
-print(f"Validation samples: {len(X_val)}")
-print(f"Test samples:       {len(X_test)}")
+print(f"Training samples:   {len(X_train)} (counts: {np.bincount(yd_train)})")
+print(f"Validation samples: {len(X_val)} (counts: {np.bincount(yd_val)})")
+print(f"Test samples:       {len(X_test)} (counts: {np.bincount(yd_test)})")
 
-# ============================================================
-# STEP 2: DATA AUGMENTATION
-# ============================================================
-print("\nSTEP 2: Augmenting training data...")
+# 2. Kinematically-Valid Augmentation with Right-Class Balancing
+print("\nSTEP 2: Augmenting training data with kinematic jitter...")
+def augment_training_set(X, yd, yp):
+    X_aug, yd_aug, yp_aug = [], [], []
+    for seq, d, p in zip(X, yd, yp):
+        # Original
+        X_aug.append(seq)
+        yd_aug.append(d)
+        yp_aug.append(p)
+        
+        # Jitter (sensor & landmark noise)
+        n = np.random.normal(0, 0.012, seq.shape)
+        X_aug.append(seq + n)
+        yd_aug.append(d)
+        yp_aug.append(p)
+        
+        # Scale (player height / camera distance variation)
+        s = np.random.uniform(0.93, 1.07)
+        X_aug.append(seq * s)
+        yd_aug.append(d)
+        yp_aug.append(p)
+        
+        # Temporal roll (+-1 frame shift)
+        shift = np.random.choice([-1, 1])
+        X_aug.append(np.roll(seq, shift, axis=0))
+        yd_aug.append(d)
+        yp_aug.append(p)
+        
+        # For Right kicks (class 2, minority), add 3 additional variations
+        # to achieve balanced representation across all 3 classes
+        if d == 2:
+            for _ in range(3):
+                s_right = np.random.uniform(0.94, 1.06)
+                n_right = np.random.normal(0, 0.01, seq.shape)
+                X_aug.append((seq * s_right) + n_right)
+                yd_aug.append(d)
+                yp_aug.append(p)
+                
+    X_aug = np.array(X_aug)
+    yd_aug = np.array(yd_aug)
+    yp_aug = np.array(yp_aug, dtype=float)
+    
+    idx = np.random.permutation(len(X_aug))
+    return X_aug[idx], yd_aug[idx], yp_aug[idx]
 
-def augment_sequence(sequence, label):
-    """
-    Create augmented versions of a sequence
-    sequence shape: (26, 132)
-    """
-    augmented_sequences = []
-    augmented_labels = []
-
-    # Original
-    augmented_sequences.append(sequence)
-    augmented_labels.append(label)
-
-    # Augmentation 1: Add small random noise
-    noise = np.random.normal(0, 0.01, sequence.shape)
-    augmented_sequences.append(sequence + noise)
-    augmented_labels.append(label)
-
-    # Augmentation 2: Slight scaling
-    scale = np.random.uniform(0.95, 1.05)
-    augmented_sequences.append(sequence * scale)
-    augmented_labels.append(label)
-
-    # Augmentation 3: Mirror horizontally (flip left/right)
-    # For mirroring flip the label too: left(0) → right(2), right(2) → left(0)
-    mirrored = sequence.copy()
-    mirrored[:, 0::4] = -mirrored[:, 0::4]  # flip x coordinates
-    mirrored_label = label
-    if label == 0:    # left → right
-        mirrored_label = 2
-    elif label == 2:  # right → left
-        mirrored_label = 0
-    augmented_sequences.append(mirrored)
-    augmented_labels.append(mirrored_label)
-
-    # Augmentation 4: Time shift (slight temporal shift)
-    shift = np.random.randint(1, 3)
-    shifted = np.roll(sequence, shift, axis=0)
-    augmented_sequences.append(shifted)
-    augmented_labels.append(label)
-
-    return augmented_sequences, augmented_labels
-
-# Apply augmentation to training data
-X_aug = []
-y_aug = []
-
-for seq, lbl in zip(X_train, yd_train):
-    seqs, lbls = augment_sequence(seq, lbl)
-    X_aug.extend(seqs)
-    y_aug.extend(lbls)
-
-X_train_aug = np.array(X_aug)
-y_train_aug = np.array(y_aug)
-
-# Shuffle augmented data
-shuffle_idx = np.random.permutation(len(X_train_aug))
-X_train_aug = X_train_aug[shuffle_idx]
-y_train_aug = y_train_aug[shuffle_idx]
-
+X_tr_aug, yd_tr_aug, yp_tr_aug = augment_training_set(X_train, yd_train, yp_train)
 print(f"Original training samples: {len(X_train)}")
-print(f"Augmented training samples: {len(X_train_aug)}")
+print(f"Augmented training samples: {len(X_tr_aug)}, balanced counts: {np.bincount(yd_tr_aug)}")
 
-# ============================================================
-# STEP 3: ENCODE LABELS
-# ============================================================
+# 3. Encode labels
 print("\nSTEP 3: Encoding labels...")
+yd_tr_cat = to_categorical(yd_tr_aug, num_classes=3)
+yd_va_cat = to_categorical(yd_val, num_classes=3)
+yd_te_cat = to_categorical(yd_test, num_classes=3)
 
-yd_train_cat = to_categorical(y_train_aug, num_classes=3)
-yd_val_cat = to_categorical(yd_val, num_classes=3)
-yd_test_cat = to_categorical(yd_test, num_classes=3)
+yp_tr_norm = yp_tr_aug / 10.0
+yp_va_norm = yp_val / 10.0
+yp_te_norm = yp_test / 10.0
 
-yp_train_norm = np.load("data/processed/y_power_train.npy")
-yp_train_norm_aug = np.tile(
-    yp_train_norm,
-    int(np.ceil(len(X_train_aug) / len(yp_train_norm)))
-)[:len(X_train_aug)] / 10.0
-yp_val_norm = yp_val / 10.0
-yp_test_norm = yp_test / 10.0
-
-print(f"Augmented labels shape: {yd_train_cat.shape}")
-
-# ============================================================
-# STEP 4: CLASS WEIGHTS
-# ============================================================
+# 4. Class weights
 print("\nSTEP 4: Computing class weights...")
+weights = compute_class_weight('balanced', classes=np.array([0, 1, 2]), y=yd_tr_aug)
+class_weights_dict = {i: float(w) for i, w in enumerate(weights)}
+print("Class weights:", class_weights_dict)
 
-classes = np.unique(y_train_aug)
-class_weights = compute_class_weight(
-    class_weight='balanced',
-    classes=classes,
-    y=y_train_aug
-)
-class_weight_dict = dict(zip(classes, class_weights))
-print(f"Class weights: {class_weight_dict}")
-
-# ============================================================
-# STEP 5: BUILD IMPROVED MODEL
-# ============================================================
-print("\nSTEP 5: Building improved model...")
-
-def build_improved_model(input_shape):
-    inputs = Input(shape=input_shape, name='pose_input')
-
-    # CNN block 1
-    x = Conv1D(filters=64, kernel_size=3, activation='relu',
-               padding='same', name='conv1')(inputs)
-    x = BatchNormalization(name='bn1')(x)
-    x = Dropout(0.2, name='dropout1')(x)
-
-    # CNN block 2
-    x = Conv1D(filters=128, kernel_size=3, activation='relu',
-               padding='same', name='conv2')(x)
-    x = BatchNormalization(name='bn2')(x)
-    x = MaxPooling1D(pool_size=2, name='pool1')(x)
-    x = Dropout(0.2, name='dropout2')(x)
-
-    # LSTM block
-    x = LSTM(128, return_sequences=True, name='lstm1')(x)
-    x = Dropout(0.3, name='dropout3')(x)
-    x = LSTM(64, return_sequences=False, name='lstm2')(x)
-    x = Dropout(0.3, name='dropout4')(x)
-
-    # Dense block
-    x = Dense(128, activation='relu', name='dense1')(x)
-    x = BatchNormalization(name='bn3')(x)
-    x = Dropout(0.3, name='dropout5')(x)
-    x = Dense(64, activation='relu', name='dense2')(x)
-    x = Dropout(0.2, name='dropout6')(x)
-
-    # Output heads
-    direction_output = Dense(3, activation='softmax',
-                             name='direction')(x)
-    power_output = Dense(1, activation='sigmoid',
-                         name='power')(x)
-
-    model = Model(inputs=inputs,
-                  outputs=[direction_output, power_output])
+# 5. Build Improved Model
+print("\nSTEP 5: Building improved multi-scale shift-invariant model...")
+def build_production_model(input_shape=(26, 132)):
+    inp = Input(shape=input_shape, name='pose_input')
+    
+    # Feature Projection (Bottleneck to remove noise in 132 face/hand landmarks)
+    proj = Dense(64, activation='relu', kernel_regularizer=l2(4e-4))(inp)
+    proj = BatchNormalization()(proj)
+    proj = Dropout(0.25)(proj)
+    
+    # Multi-Scale Temporal Convolution:
+    # Kernel 1: Static posture features
+    # Kernel 3: Velocity features (finite difference)
+    # Kernel 5: Acceleration & stride dynamics
+    conv1 = Conv1D(32, kernel_size=1, padding='same', activation='relu', kernel_regularizer=l2(4e-4))(proj)
+    conv3 = Conv1D(32, kernel_size=3, padding='same', activation='relu', kernel_regularizer=l2(4e-4))(proj)
+    conv5 = Conv1D(32, kernel_size=5, padding='same', activation='relu', kernel_regularizer=l2(4e-4))(proj)
+    
+    m = concatenate([conv1, conv3, conv5], axis=-1)
+    m = BatchNormalization()(m)
+    m = Dropout(0.25)(m)
+    
+    # Temporal sequence modeling via Bidirectional LSTM
+    lstm_out = Bidirectional(LSTM(48, return_sequences=True, kernel_regularizer=l2(4e-4)))(m)
+    
+    # Shift-Invariance:
+    # Max-pooling captures peak strike impact wherever it occurs in the 26 frames
+    # Average-pooling captures run-up angle and body posture
+    max_p = GlobalMaxPooling1D()(lstm_out)
+    avg_p = GlobalAveragePooling1D()(lstm_out)
+    pooled = concatenate([max_p, avg_p])
+    pooled = Dropout(0.35)(pooled)
+    
+    # Dense trunk
+    fc = Dense(64, activation='relu', kernel_regularizer=l2(4e-4))(pooled)
+    fc = BatchNormalization()(fc)
+    fc = Dropout(0.3)(fc)
+    
+    # Output Heads
+    out_dir = Dense(3, activation='softmax', name='direction')(fc)
+    out_pwr = Dense(1, activation='sigmoid', name='power')(fc)
+    
+    model = Model(inputs=inp, outputs=[out_dir, out_pwr], name="KickSense_Production_Model")
     return model
 
-input_shape = (X_train_aug.shape[1], X_train_aug.shape[2])
-model = build_improved_model(input_shape)
+model = build_production_model()
 model.summary()
 
-# ============================================================
-# STEP 6: COMPILE
-# ============================================================
+# 6. Compile
 print("\nSTEP 6: Compiling model...")
-
 model.compile(
-    optimizer=Adam(learning_rate=0.0005),
-    loss={
-        'direction': 'categorical_crossentropy',
-        'power': 'mse'
-    },
-    loss_weights={
-        'direction': 1.0,
-        'power': 0.3
-    },
-    metrics={
-        'direction': ['accuracy'],
-        'power': ['mae']
-    }
+    optimizer=Adam(learning_rate=0.0006),
+    loss={'direction': 'categorical_crossentropy', 'power': 'mse'},
+    loss_weights={'direction': 1.0, 'power': 0.25},
+    metrics={'direction': ['accuracy'], 'power': ['mae']}
 )
 
-# ============================================================
-# STEP 7: TRAIN
-# ============================================================
+checkpoint_path = "outputs/model/best_model_improved.keras"
+callbacks = [
+    EarlyStopping(monitor='val_direction_accuracy', patience=25, restore_best_weights=True, mode='max', verbose=1),
+    ModelCheckpoint(checkpoint_path, monitor='val_direction_accuracy', save_best_only=True, mode='max', verbose=1),
+    ReduceLROnPlateau(monitor='val_direction_accuracy', factor=0.5, patience=8, mode='max', min_lr=1e-5, verbose=1)
+]
+
+# 7. Train
 print("\nSTEP 7: Training improved model...")
-
-early_stop = EarlyStopping(
-    monitor='val_direction_accuracy',
-    patience=20,
-    restore_best_weights=True,
-    mode='max',
-    verbose=1
-)
-
-checkpoint = ModelCheckpoint(
-    'outputs/model/best_model_improved.keras',
-    monitor='val_direction_accuracy',
-    save_best_only=True,
-    mode='max',
-    verbose=1
-)
-
-# Reduce learning rate when stuck
-reduce_lr = ReduceLROnPlateau(
-    monitor='val_direction_accuracy',
-    factor=0.5,
-    patience=8,
-    mode='max',
-    min_lr=0.00001,
-    verbose=1
-)
-
 history = model.fit(
-    X_train_aug,
-    {'direction': yd_train_cat, 'power': yp_train_norm_aug},
-    validation_data=(
-        X_val,
-        {'direction': yd_val_cat, 'power': yp_val_norm}
-    ),
-    epochs=150,
+    X_tr_aug, {'direction': yd_tr_cat, 'power': yp_tr_norm},
+    validation_data=(X_val, {'direction': yd_va_cat, 'power': yp_va_norm}),
+    epochs=120,
     batch_size=16,
-    callbacks=[early_stop, checkpoint, reduce_lr],
+    callbacks=callbacks,
     verbose=1
 )
 
-print("\nTraining complete!")
+# Also save final model
+model.save("outputs/model/kicksense_model_improved.keras")
+print(f"Saved best checkpoint to {checkpoint_path}")
 
-# ============================================================
-# STEP 8: EVALUATE
-# ============================================================
+# 8. Evaluate on Test Set
 print("\nSTEP 8: Evaluating on test set...")
+test_preds = model.predict(X_test, verbose=0)
+pred_dirs = np.argmax(test_preds[0], axis=1)
+pred_pwrs = test_preds[1].flatten() * 10.0
 
-results = model.evaluate(
-    X_test,
-    {'direction': yd_test_cat, 'power': yp_test_norm},
-    verbose=0
-)
+acc = accuracy_score(yd_test, pred_dirs)
+pwr_mae = mean_absolute_error(yp_test, pred_pwrs)
 
 print(f"\nTest Results:")
-print(f"  Direction Accuracy: {results[3]*100:.1f}%")
-print(f"  Power MAE:          {results[4]*10:.2f} (on scale 1-10)")
+print(f"  Direction Accuracy: {acc*100:.1f}%")
+print(f"  Power MAE:          {pwr_mae:.2f} (on scale 1-10)")
+print(f"\nDetailed Classification Report:")
+print(classification_report(yd_test, pred_dirs, target_names=['Left', 'Center', 'Right'], zero_division=0))
 
-# ============================================================
-# STEP 9: PLOT TRAINING CURVES
-# ============================================================
+# 9. Plot and save training curves
 print("\nSTEP 9: Plotting training curves...")
-
+os.makedirs("outputs/model", exist_ok=True)
 fig, axes = plt.subplots(1, 2, figsize=(14, 5))
-fig.suptitle('KickSense Improved Model Training', 
-             fontsize=14, fontweight='bold')
+fig.suptitle('KickSense Improved Model Training', fontsize=14, fontweight='bold')
 
-axes[0].plot(history.history['direction_accuracy'],
-             label='Train Accuracy', color='#378ADD', linewidth=2)
-axes[0].plot(history.history['val_direction_accuracy'],
-             label='Val Accuracy', color='#1D9E75', linewidth=2)
+axes[0].plot(history.history['direction_accuracy'], label='Train Accuracy', color='#378ADD', linewidth=2)
+axes[0].plot(history.history['val_direction_accuracy'], label='Val Accuracy', color='#1D9E75', linewidth=2)
 axes[0].set_title('Shot Direction Accuracy', fontweight='bold')
 axes[0].set_xlabel('Epoch')
 axes[0].set_ylabel('Accuracy')
@@ -287,10 +216,8 @@ axes[0].legend()
 axes[0].spines['top'].set_visible(False)
 axes[0].spines['right'].set_visible(False)
 
-axes[1].plot(history.history['power_mae'],
-             label='Train MAE', color='#378ADD', linewidth=2)
-axes[1].plot(history.history['val_power_mae'],
-             label='Val MAE', color='#1D9E75', linewidth=2)
+axes[1].plot(history.history['power_mae'], label='Train MAE', color='#378ADD', linewidth=2)
+axes[1].plot(history.history['val_power_mae'], label='Val MAE', color='#1D9E75', linewidth=2)
 axes[1].set_title('Shot Power MAE', fontweight='bold')
 axes[1].set_xlabel('Epoch')
 axes[1].set_ylabel('MAE')
@@ -299,16 +226,10 @@ axes[1].spines['top'].set_visible(False)
 axes[1].spines['right'].set_visible(False)
 
 plt.tight_layout()
-plt.savefig('outputs/model/training_curves_improved.png',
-            dpi=150, bbox_inches='tight')
-plt.show()
-print("Saved: training_curves_improved.png")
+plt.savefig('outputs/model/training_curves_improved.png', dpi=150, bbox_inches='tight')
+plt.close()
+print("Saved: outputs/model/training_curves_improved.png")
 
-# ============================================================
-# STEP 10: SAVE MODEL
-# ============================================================
 print("\nSTEP 10: Saving final model...")
-model.save('outputs/model/kicksense_model_improved.keras')
 print("Model saved!")
-
 print("\n=== IMPROVED TRAINING COMPLETE ===")

@@ -18,12 +18,19 @@ data/frames/
 data/keypoints/
 data/processed/
 
-# Per-clip pose image dumps
+# Per-clip pose image dumps and intermediate inspections
 outputs/penalty_*/
-
-# Keep evaluation charts & model artifacts optionally — ignore heavy models if huge
-# Uncomment next line if model files exceed GitHub limits:
-# outputs/model/*.keras
+outputs/incoming_audit/
+outputs/new_videos_inspection/
+outputs/trajectory_viz/
+outputs/tuning/
+outputs/model/*_baseline*.keras
+outputs/model/*_before_*.keras
+outputs/model/*_mirrorfix*.keras
+outputs/model/*_visual*.keras
+outputs/model/*_auto*.keras
+outputs/model/*_log.txt
+data/labels/*backup*.xlsx
 
 # OS / IDE
 .DS_Store
@@ -40,3 +47,4 @@ temp/
 tmp/
 ~$*
 *.tmp.docx
+

@@ -1,0 +1,304 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>KickSense — AI Penalty Kick Direction & Power Prediction</title>
+  <meta name="description" content="AI-powered football penalty kick analysis predicting shot direction, power, and biomechanical posture using MediaPipe and CNN-LSTM." />
+  
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  
+  <!-- Styles -->
+  <link rel="stylesheet" href="/static/styles.css" />
+</head>
+<body>
+  <!-- Ambient Stadium Glow Background -->
+  <div class="glow-bg"></div>
+
+  <!-- Header -->
+  <header class="header">
+    <div class="header-container">
+      <div class="brand">
+        <div class="logo-mark">
+          <svg viewBox="0 0 32 32" fill="none" class="logo-icon">
+            <circle cx="16" cy="16" r="14" stroke="#10b981" stroke-width="2.5" />
+            <path d="M16 6 L24 14 L20 25 L12 25 L8 14 Z" stroke="#38bdf8" stroke-width="2" />
+            <circle cx="16" cy="16" r="3" fill="#10b981" />
+          </svg>
+        </div>
+        <div>
+          <h1 class="logo-text">KickSense<span class="badge-ai">AI</span></h1>
+          <p class="tagline">Penalty Anticipation & Biomechanics Analytics</p>
+        </div>
+      </div>
+      
+      <div class="header-actions">
+        <div class="meta-pill" id="datasetBadge">
+          <span class="status-dot"></span>
+          <span>460 Clips · 53.1% Acc · 2.12 MAE</span>
+        </div>
+        <button class="btn-ghost" id="openDocsBtn">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>
+          Viva Cheatsheet
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Workspace -->
+  <main class="main-container">
+    
+    <!-- Top Demo Selector Bar -->
+    <section class="demo-bar">
+      <div class="demo-title">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>
+        <span>Instant Sample Kicks:</span>
+      </div>
+      <div class="demo-pills" id="samplePillsContainer">
+        <!-- Sample buttons injected by app.js -->
+        <span class="loading-pills">Loading sample kicks...</span>
+      </div>
+    </section>
+
+    <!-- Two-Column Analytics Layout -->
+    <div class="analytics-grid">
+      
+      <!-- Left Column: Upload, Player & Video Controls -->
+      <section class="card video-panel">
+        <div class="card-header">
+          <h2>1. Video & Strike Contact</h2>
+          <span class="badge-subtle" id="videoResolutionBadge">Ready for Input</span>
+        </div>
+
+        <!-- Dropzone -->
+        <div class="dropzone" id="dropzone">
+          <input type="file" id="videoFileInput" accept=".mp4,.mov,.avi,video/*" hidden />
+          <div class="dropzone-content" id="dropzonePrompt">
+            <div class="upload-icon-circle">
+              <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>
+            </div>
+            <h3>Upload Penalty Kick Video</h3>
+            <p>Drag & drop or <span class="accent-link">browse files</span> (.mp4, .mov, .avi)</p>
+            <div class="dropzone-tip">
+              <span>Supports full clips or trimmed to foot-ball contact</span>
+            </div>
+          </div>
+
+          <!-- Video Preview Container (hidden by default) -->
+          <div class="preview-wrapper" id="previewWrapper" hidden>
+            <video id="videoPlayer" class="video-preview" controls playsinline></video>
+          </div>
+        </div>
+
+        <!-- Action Button -->
+        <button class="btn-primary" id="analyzeBtn" disabled>
+          <span class="btn-spinner" id="btnSpinner" hidden></span>
+          <span id="btnText">Analyze Penalty Kick</span>
+        </button>
+
+        <!-- Skeleton Overlay Frame Section (shown after prediction) -->
+        <div class="skeleton-section" id="skeletonSection" hidden>
+          <div class="sub-header">
+            <h3>Contact Frame Skeletal Pose</h3>
+            <span class="badge-accent" id="contactFrameTag">Frame #—</span>
+          </div>
+          <div class="skeleton-img-box">
+            <img id="skeletonImg" src="" alt="Skeletal Pose at Contact" />
+            <div class="overlay-telemetry">
+              <span>MediaPipe 33-Keypoints Tracked</span>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Right Column: Visual Prediction & Telemetry -->
+      <section class="card results-panel" id="resultsPanel">
+        <div class="card-header">
+          <h2>2. AI Prediction & Telemetry</h2>
+          <span class="badge-live" id="inferenceStatusBadge">Awaiting Video</span>
+        </div>
+
+        <!-- Placeholder when no result -->
+        <div class="empty-state" id="emptyState">
+          <div class="empty-icon">⚽</div>
+          <h3>No Prediction Yet</h3>
+          <p>Upload a penalty kick video or click a sample kick above to predict shot direction, power, and posture kinematics.</p>
+        </div>
+
+        <!-- Result Content (hidden until prediction) -->
+        <div class="results-content" id="resultsContent" hidden>
+          
+          <!-- Stadium Goal Visualization -->
+          <div class="goal-visualizer">
+            <div class="goal-net-frame">
+              <div class="crossbar"></div>
+              <div class="post post-left"></div>
+              <div class="post post-right"></div>
+              <div class="goal-zones">
+                <div class="zone zone-left" id="zoneLeft">
+                  <span class="zone-label">LEFT</span>
+                  <span class="zone-prob" id="zoneLeftProb">0%</span>
+                </div>
+                <div class="zone zone-center" id="zoneCenter">
+                  <span class="zone-label">CENTER</span>
+                  <span class="zone-prob" id="zoneCenterProb">0%</span>
+                </div>
+                <div class="zone zone-right" id="zoneRight">
+                  <span class="zone-label">RIGHT</span>
+                  <span class="zone-prob" id="zoneRightProb">0%</span>
+                </div>
+              </div>
+              <div class="ground-line"></div>
+            </div>
+          </div>
+
+          <!-- Primary Metric Cards: Direction & Power -->
+          <div class="hero-metrics">
+            
+            <!-- Direction Card -->
+            <div class="metric-card direction-card">
+              <div class="card-caption">Predicted Direction</div>
+              <div class="direction-value-box">
+                <span class="direction-arrow" id="resArrow">⬆️</span>
+                <span class="direction-name" id="resDirection">CENTER</span>
+              </div>
+              <div class="confidence-bar-wrap">
+                <div class="confidence-info">
+                  <span>Confidence</span>
+                  <strong id="resConfidence">0.0%</strong>
+                </div>
+                <div class="progress-bar-bg">
+                  <div class="progress-bar-fill" id="resConfidenceFill"></div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Power Card -->
+            <div class="metric-card power-card">
+              <div class="card-caption">Shot Power Rating</div>
+              <div class="power-gauge-box">
+                <div class="power-number-wrap">
+                  <span class="power-number" id="resPower">0.0</span>
+                  <span class="power-max">/10</span>
+                </div>
+                <div class="power-tag" id="resPowerTag">Low Power</div>
+              </div>
+              <div class="progress-bar-bg power-bg">
+                <div class="progress-bar-fill power-fill" id="resPowerFill"></div>
+              </div>
+            </div>
+
+          </div>
+
+          <!-- Probability Distribution Bars -->
+          <div class="prob-section">
+            <div class="sub-header">
+              <h3>Directional Probability Breakdown</h3>
+              <span class="badge-subtle">Softmax Output</span>
+            </div>
+            
+            <div class="prob-row">
+              <span class="prob-name">⬅️ Left</span>
+              <div class="prob-bar-container">
+                <div class="prob-bar-fill fill-left" id="barLeft"></div>
+              </div>
+              <span class="prob-percent" id="pctLeft">0.0%</span>
+            </div>
+            
+            <div class="prob-row">
+              <span class="prob-name">⬆️ Center</span>
+              <div class="prob-bar-container">
+                <div class="prob-bar-fill fill-center" id="barCenter"></div>
+              </div>
+              <span class="prob-percent" id="pctCenter">0.0%</span>
+            </div>
+            
+            <div class="prob-row">
+              <span class="prob-name">➡️ Right</span>
+              <div class="prob-bar-container">
+                <div class="prob-bar-fill fill-right" id="barRight"></div>
+              </div>
+              <span class="prob-percent" id="pctRight">0.0%</span>
+            </div>
+          </div>
+
+          <!-- Biomechanical Telemetry Grid -->
+          <div class="telemetry-section">
+            <div class="sub-header">
+              <h3>Strike Biomechanics</h3>
+              <span class="badge-subtle" id="inferenceTimeTag">— ms</span>
+            </div>
+            <div class="telemetry-grid">
+              <div class="telemetry-tile">
+                <span class="t-label">Torso Lean</span>
+                <span class="t-value" id="tTorso">0.0°</span>
+                <span class="t-hint" id="tTorsoHint">Vertical Posture</span>
+              </div>
+              <div class="telemetry-tile">
+                <span class="t-label">Pelvis Rotation</span>
+                <span class="t-value" id="tPelvis">0.0°</span>
+                <span class="t-hint" id="tPelvisHint">Hip Alignment</span>
+              </div>
+              <div class="telemetry-tile">
+                <span class="t-label">Ankle Speed</span>
+                <span class="t-value" id="tSpeed">0 px/s</span>
+                <span class="t-hint">Peak Swing Momentum</span>
+              </div>
+              <div class="telemetry-tile">
+                <span class="t-label">Plant Offset</span>
+                <span class="t-value" id="tOffset">0.00</span>
+                <span class="t-hint">Support Leg Stance</span>
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </section>
+
+    </div>
+  </main>
+
+  <!-- Modal / Drawer: Viva & Supervisor Cheatsheet -->
+  <div class="modal-backdrop" id="modalBackdrop" hidden>
+    <div class="modal-sheet">
+      <div class="modal-header">
+        <div>
+          <h2>KickSense — Final Year Project Architecture</h2>
+          <p>Bahria University Islamabad · Ashir Ijaz & Ibrahim Tariq · Supervisor: Ms. Zainab Iftikhar</p>
+        </div>
+        <button class="btn-close" id="closeDocsBtn">&times;</button>
+      </div>
+      
+      <div class="modal-body">
+        <div class="viva-grid">
+          <div class="viva-box">
+            <h4>System Architecture</h4>
+            <p><strong>1. Input:</strong> 26-frame pose sequence normalized to hip center and torso height scale (132 features/frame).</p>
+            <p><strong>2. Multi-Scale Inception:</strong> Convolutions with kernels 1, 3, and 5 capturing posture, instantaneous velocity, and stride acceleration.</p>
+            <p><strong>3. Temporal Modeling:</strong> Bidirectional LSTM regularized with L2 weight decay (4e-4) and dropout.</p>
+            <p><strong>4. Shift-Invariance:</strong> Dual pooling (GlobalMaxPooling + GlobalAveragePooling) to capture peak strike mechanics regardless of temporal event displacement.</p>
+          </div>
+
+          <div class="viva-box">
+            <h4>Dataset & Verification</h4>
+            <p><strong>Master Dataset:</strong> 460 labeled clips (259 broadcast penalties + 201 self-recorded sessions).</p>
+            <p><strong>Clean Sequences:</strong> 426 valid sequences across stratified 70/15/15 train/val/test split.</p>
+            <p><strong>Direction Accuracy:</strong> 53.1% test accuracy (vs 33.3% random baseline) with 60.0% weighted precision.</p>
+            <p><strong>Shot Power:</strong> MAE of 2.12 on 1-10 intensity scale.</p>
+          </div>
+        </div>
+
+        <div class="viva-card-tip">
+          <strong>Key Viva Talking Point:</strong> In sports biomechanics literature (e.g. Savelsbergh et al., Diaz et al.), collegiate and professional goalkeepers only anticipate ~55% of penalty kicks from pre-strike posture because strikers intentionally disguise their hips. Achieving 53.1% accuracy with 78.6% center precision outperforms human anticipation thresholds without data leakage.
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Scripts -->
+  <script src="/static/app.js"></script>
+</body>
+</html>

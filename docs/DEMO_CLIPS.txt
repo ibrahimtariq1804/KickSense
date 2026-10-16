@@ -1,0 +1,36 @@
+# Recommended Streamlit demo clips
+
+Pick a **clear close-up** where the full body is visible. High MediaPipe detection = better live demo.
+
+Place / use files under: `data/videos/<id>.mp4`
+
+## Primary picks (pose ratio ~100%)
+
+1. `penalty_266.mp4` — 298/298 frames with pose
+2. `penalty_247.mp4` — 233/233 frames with pose
+3. `penalty_281.mp4` — 220/220 frames with pose
+
+## Backups
+
+- `penalty_259.mp4`
+- `penalty_233.mp4`
+- `penalty_279.mp4`
+
+## Smoke-test status (prep night)
+
+- Model `best_model_improved.keras` loads; input `(None, 26, 132)`
+- `penalty_266.mp4`: 26/26 poses detected; end-to-end predict OK
+- `streamlit run app.py` serves at http://localhost:8501
+
+## How to demo
+
+```bash
+kicksense_env\Scripts\activate
+streamlit run app.py
+```
+
+Upload one of the clips above → wait for pose + prediction → show direction confidence bars and power.
+
+## Avoid for live demo
+
+Wide-angle / distant kickers (low pose detection) — predictions look random and undermine the story.

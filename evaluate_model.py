@@ -1,5 +1,7 @@
 import numpy as np
 import tensorflow as tf
+import matplotlib
+matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 import seaborn as sns
 from sklearn.metrics import (
@@ -113,7 +115,7 @@ ax.set_ylabel('Actual', fontsize=12)
 plt.tight_layout()
 plt.savefig('outputs/evaluation/confusion_matrix.png',
             dpi=150, bbox_inches='tight')
-plt.show()
+plt.close()
 print("Saved: confusion_matrix.png")
 
 # ============================================================
@@ -164,7 +166,7 @@ axes[1].spines['right'].set_visible(False)
 plt.tight_layout()
 plt.savefig('outputs/evaluation/evaluation_results.png',
             dpi=150, bbox_inches='tight')
-plt.show()
+plt.close()
 print("Saved: evaluation_results.png")
 
 # ============================================================
@@ -208,7 +210,7 @@ ax.spines['right'].set_visible(False)
 plt.tight_layout()
 plt.savefig('outputs/evaluation/per_class_metrics.png',
             dpi=150, bbox_inches='tight')
-plt.show()
+plt.close()
 print("Saved: per_class_metrics.png")
 
 # ============================================================

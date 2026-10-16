@@ -1,0 +1,177 @@
+In this chapter, the testing and evaluation process of the Wheel Share system will be introduced so that it should be effective and will address all the requirements of the user. Various forms of testing that include GUI testing, usability testing, performance testing, compatibility testing and exception handling were carried out in order to be assured that the system operates as desired by both the Riders, Drivers and Admins. 
+\section{Importance of System Testing}
+The tests on the system are critical to the quality and reliability of the Wheel Share application. It also checks that all the parts, such as posting of rides or accepting offers and emergency notifications, are functioning as desired. Systematic testing was also used to detect possible errors and rectify before real deployment. This would ensure that there is a user friendly and safe user experience and the system develops the confidence of the user in the performance and stability of the system\cite{chaudhry2018}.
+
+\section{Graphical User Interface (GUI) Testing}
+Graphical User Interface (GUI) testing will deal with confirming the visual and interactive interface of the Wheel Share app. All the screens and dashboards have been tested to launch menus, icons, buttons and flow of navigation both on the web and mobile platform. Responsiveness, consistency of layouts and accuracy of design were given special consideration. The interface was verified to be clean, intuitive and easy to use and offered a smooth navigation through the Riders, Drivers and Admins. 
+
+\section{Usability Testing}
+The usability testing was performed to determine the ease with which this application (Wheel Share) could be navigated and used by the users. A team of Riders, Drivers, and Admins were consulted to execute more routine duties including adding rides, taking in offers, and making emergency alerts. The findings revealed that the application was not only easy to navigate but was also user friendly with the instructions being very simple and very little process was involved to accomplish each task. The user-friendly design of the app enhanced the use experiences and satisfaction. 
+
+\section{Software Performance Testing}
+The performance testing was done to assess the behaviour of the Wheel Share system under different load directions. They tested the speed with which they could respond to the actions of ride search, offer submission and dashboard loading. The system did not have a decline in performance even upon having more users of the system simultaneously. The average search time of the ride took less than two seconds and the dashboard summary took an average of three seconds to load. These are the findings indicating the necessary requirements of scalability and speed of the application. 
+\section{Compatibility Testing}
+The compatibility testing was made to ensure that Wheel Share system will work across various devices, operating systems and browsers. The app has been made to work with Android, and web browsers, including Chrome, Edge, and Safari. It worked effectively in every platform it had similar graphic effects and functionality. This is to make sure that users can use Wheel Share in any modern gadget without any performance problems and disfiguration on the interface.
+\section{Exception Handling}
+Exception handling test was done to ensure that the system responds to the wrong or unexpected messages. The system showed relevant error messages when the users typed wrong credentials or left some required fields blank or even trying to do actions without authorization. This increased stability and avoided crashing of the systems so that all the users had a secure and stable environment. 
+
+\section{Test Cases}
+Various test cases were carried out to test the basic functionality of the system. These comprised of login authentication, Ride creation, offer management, emergency alert triggering, earnings and spending summaries. Every test case was verified to attest the proper functioning and system work. The system successfully passed the majority of test cases, having more than 95 percent accuracy on function test and integration test. 
+
+
+\subsection{Test Case: Login}
+
+\begin{table}[H]
+\centering
+
+\label{tab:testcase-login}
+\renewcommand{\arraystretch}{1.2}
+\begin{tabular}{|>{\bfseries}l|p{10cm}|}
+\hline
+Test Case ID & 0001 \\ \hline
+Test Case & Login with valid credentials (Rider/Driver/Admin) \\ \hline
+Pre-Conditions & User exists, email verified, active status \\ \hline
+Steps &
+1. Open login screen. \newline
+2. Enter email and password. \newline
+3. Submit the login form. \\ \hline
+Expected Result & User is redirected to the respective dashboard and a secure session is established. \\ \hline
+Actual Result & As expected \\ \hline
+Status & Pass \\ \hline
+\end{tabular}
+\caption{Login Test Case}
+\end{table}
+
+\noindent
+\textbf{Description:} This test case validates that authorized users can successfully log into the system using valid credentials and access their respective dashboards securely.
+
+
+
+
+\subsection{Test Case: Ride Posting}
+
+\begin{table}[H]
+\centering
+\label{tab:testcase-ride-post}
+\renewcommand{\arraystretch}{1.2}
+\begin{tabular}{|>{\bfseries}l|p{10cm}|}
+\hline
+Test Case ID & 0002 \\ \hline
+Test Case & Rider: Post a Ride Request \\ \hline
+Pre-Conditions & Rider logged in; ride form available \\ \hline
+Steps &
+1. Enter ride details (source, destination, date, time). \newline
+2. Submit the ride request. \\ \hline
+Expected Result & Ride request is saved successfully, becomes visible to drivers in the same city, and a notification is sent. \\ \hline
+Actual Result & As expected \\ \hline
+Status & Pass \\ \hline
+\end{tabular}
+\caption{Test Case for Ride Posting}
+\end{table}
+
+\noindent
+\textbf{Description:} This test case verifies that a rider can successfully post a ride request and that the request is properly stored, displayed to relevant drivers, and notifications are triggered.
+
+
+\subsection{Test Case: Driver Ride Offer}
+
+\begin{table}[H]
+\centering
+
+\label{tab:testcase-driver-offer}
+\renewcommand{\arraystretch}{1.2}
+\begin{tabular}{|>{\bfseries}l|p{10cm}|}
+\hline
+Test Case ID & 0003 \\ \hline
+Test Case & Driver: Offer Ride \\ \hline
+Pre-Conditions & Driver logged in; rides available \\ \hline
+Steps &
+1. Select a ride post. \newline
+2. Send ride offer. \newline
+3. Rider accepts or rejects the offer. \\ \hline
+Expected Result & Offer status is updated, real-time notifications are sent, and the ride is confirmed upon acceptance. \\ \hline
+Actual Result & As expected \\ \hline
+Status & Pass \\ \hline
+\end{tabular}
+\caption{Driver Ride Offer and Acceptance}
+\end{table}
+
+\noindent
+\textbf{Description:} This test case ensures that drivers can successfully offer rides to riders and that the system correctly handles offer status updates, notifications, and ride confirmation.
+
+
+\subsection{Test Case: Emergency Alert}
+
+\begin{table}[H]
+\centering
+
+\label{tab:testcase-emergency-alert}
+\renewcommand{\arraystretch}{1.2}
+\begin{tabular}{|>{\bfseries}l|p{10cm}|}
+\hline
+Test Case ID & 0004 \\ \hline
+Test Case & Emergency Alert Trigger \\ \hline
+Pre-Conditions & User logged in; network connected \\ \hline
+Steps &
+1. Tap the emergency alert button. \newline
+2. Confirm the emergency alert. \\ \hline
+Expected Result & Notification is sent to the admin and emergency contacts, and the alert is logged in the database. \\ \hline
+Actual Result & As expected \\ \hline
+Status & Pass \\ \hline
+\end{tabular}
+\caption{Test Case for Emergency Alert Trigger}
+\end{table}
+
+\noindent
+\textbf{Description:} This test case verifies that users can successfully trigger an emergency alert and that the system promptly notifies relevant authorities and records the alert for safety purposes.
+
+
+\subsection{Test Case: Admin Dashboard}
+
+\begin{table}[H]
+\centering
+\label{tab:testcase-admin-dashboard}
+\renewcommand{\arraystretch}{1.2}
+\begin{tabular}{|>{\bfseries}l|p{10cm}|}
+\hline
+Test Case ID & 0005 \\ \hline
+Test Case & Admin: View Dashboard \& Ride Statistics \\ \hline
+Pre-Conditions & Admin logged in; rides and users seeded \\ \hline
+Steps &
+1. Load the admin dashboard. \newline
+2. Apply filters by city or date. \newline
+3. Drill down into ride details. \\ \hline
+Expected Result & Dashboard aggregates match the database records, and drill-down views display correct ride information. \\ \hline
+Actual Result & As expected \\ \hline
+Status & Pass \\ \hline
+\end{tabular}
+\caption{Test Case for Admin Dashboard and Ride Statistics}
+\end{table}
+
+\noindent
+\textbf{Description:} This test case ensures that the admin can view accurate dashboard analytics and ride statistics, apply filters, and access detailed ride information correctly.
+
+
+\subsection{Security Test Scenario}
+
+\begin{table}[H]
+\centering
+\label{tab:testcase-security}
+\renewcommand{\arraystretch}{1.2}
+\begin{tabular}{|>{\bfseries}p{6cm}|p{8cm}|}
+\hline
+Test Scenario & Result / Enforcement \\ \hline
+Unauthorized role attempts to accept rides on behalf of others & Action denied by role-level security (RLS) \\ \hline
+Cross-city ride access attempt & No records returned due to access restrictions \\ \hline
+Unsigned GET request to private profile images & Request blocked with 403 Forbidden response \\ \hline
+SQL/JavaScript injection attempts via form inputs & No impact due to parameterized queries and input validation \\ \hline
+Fake or modified emergency alert submission & Request denied by security policy enforcement \\ \hline
+\end{tabular}
+\caption{Negative and Security Test Results}
+\end{table}
+
+\noindent
+\textbf{Description:} This security test scenario verifies that the system enforces role-based access control and protects against unauthorized access and common security vulnerabilities.
+
+
+
