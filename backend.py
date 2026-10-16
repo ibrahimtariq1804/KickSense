@@ -155,10 +155,12 @@ async def project_info():
 async def get_sample_clips():
     """Returns pre-loaded sample penalty clips available on the server for 1-click testing."""
     samples = [
-        {"id": "penalty_01", "name": "Argentina vs France (World Cup Final)", "true_direction": "Right", "true_power": 10.0},
-        {"id": "penalty_02", "name": "World Cup Shootout Clip A", "true_direction": "Left", "true_power": 5.0},
-        {"id": "penalty_04", "name": "World Cup Shootout Clip B", "true_direction": "Right", "true_power": 6.0},
-        {"id": "penalty_05", "name": "Center Placement Sample", "true_direction": "Center", "true_power": 7.0},
+        {"id": "penalty_06", "name": "World Cup Final — Paredes", "true_direction": "Left", "true_power": 8.0},
+        {"id": "penalty_07", "name": "World Cup Final — Kolo Muani", "true_direction": "Right", "true_power": 8.0},
+        {"id": "penalty_08", "name": "World Cup Final — Montiel (Match Winner)", "true_direction": "Right", "true_power": 10.0},
+        {"id": "penalty_10", "name": "World Cup Shootout — Messi", "true_direction": "Right", "true_power": 9.0},
+        {"id": "penalty_11", "name": "World Cup Shootout — Berghuis", "true_direction": "Right", "true_power": 9.0},
+        {"id": "penalty_13", "name": "World Cup Shootout — Koopmeiners", "true_direction": "Left", "true_power": 8.5},
         {"id": "penalty_291", "name": "Recorded Session — Drive", "true_direction": "Left", "true_power": 9.5},
         {"id": "penalty_292", "name": "Recorded Session — Corner", "true_direction": "Right", "true_power": 9.0}
     ]
