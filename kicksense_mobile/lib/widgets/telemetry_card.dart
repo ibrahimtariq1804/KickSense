@@ -26,13 +26,17 @@ class BiomechanicsGrid extends StatelessWidget {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text(
-                'STRIKER BIOMECHANICS',
-                style: GoogleFonts.outfit(
-                  fontSize: 12,
-                  fontWeight: FontWeight.w700,
-                  letterSpacing: 1.0,
-                  color: AppTheme.textSubtle,
+              Expanded(
+                child: Text(
+                  'STRIKER BIOMECHANICS',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: GoogleFonts.outfit(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w700,
+                    letterSpacing: 1.0,
+                    color: AppTheme.textSubtle,
+                  ),
                 ),
               ),
               const Icon(Icons.accessibility_new_rounded, size: 16, color: AppTheme.accentCyan),

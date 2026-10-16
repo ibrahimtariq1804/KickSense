@@ -178,7 +178,7 @@ async def predict_sample(sample_id: str = Query(...)):
         raise HTTPException(status_code=404, detail=f"Sample video '{clean_id}' not found.")
     return JSONResponse(execute_prediction(path))
 
-@app.get("/api/sample-video/{sample_id}")
+@app.api_route("/api/sample-video/{sample_id}", methods=["GET", "HEAD"])
 async def get_sample_video(sample_id: str):
     clean_id = os.path.basename(sample_id).replace(".mp4", "")
     path = os.path.join("data", "videos", f"{clean_id}.mp4")

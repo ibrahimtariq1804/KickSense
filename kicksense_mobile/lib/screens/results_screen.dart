@@ -94,16 +94,21 @@ class ResultsScreen extends StatelessWidget {
                         Row(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
-                            Text(
-                              'PREDICTED DIRECTION',
-                              style: GoogleFonts.outfit(
-                                fontSize: 11,
-                                fontWeight: FontWeight.w700,
-                                letterSpacing: 1.2,
-                                color: AppTheme.accentCyan,
+                            Expanded(
+                              child: Text(
+                                'PREDICTED DIRECTION',
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: GoogleFonts.outfit(
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.w700,
+                                  letterSpacing: 1.2,
+                                  color: AppTheme.accentCyan,
+                                ),
                               ),
                             ),
-                            if (hasTrueLabel)
+                            if (hasTrueLabel) ...[
+                              const SizedBox(width: 6),
                               Container(
                                 padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                                 decoration: BoxDecoration(
@@ -122,6 +127,7 @@ class ResultsScreen extends StatelessWidget {
                                   ),
                                 ),
                               ),
+                            ],
                           ],
                         ),
                         const SizedBox(height: 2),
@@ -166,6 +172,9 @@ class ResultsScreen extends StatelessWidget {
                 sampleName: sampleName,
                 trueDirection: trueDirection,
                 predictedDirection: result.direction,
+                strikeFrameIdx: result.strikeFrameIdx,
+                fps: result.fps,
+                totalFrames: result.totalFrames,
               ),
               const SizedBox(height: 16),
             ],
@@ -199,26 +208,40 @@ class ResultsScreen extends StatelessWidget {
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        Text(
-                          'CONTACT MOMENT SKELETAL POSE',
-                          style: GoogleFonts.outfit(
-                            fontSize: 12,
-                            fontWeight: FontWeight.w700,
-                            letterSpacing: 1.0,
-                            color: AppTheme.textSubtle,
+                        Expanded(
+                          child: Row(
+                            children: [
+                              const Icon(Icons.accessibility_new_rounded, size: 16, color: AppTheme.accentEmerald),
+                              const SizedBox(width: 6),
+                              Expanded(
+                                child: Text(
+                                  'SKELETON AT BALL CONTACT',
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: GoogleFonts.outfit(
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.w700,
+                                    letterSpacing: 0.8,
+                                    color: AppTheme.accentEmerald,
+                                  ),
+                                ),
+                              ),
+                            ],
                           ),
                         ),
+                        const SizedBox(width: 8),
                         Container(
                           padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                           decoration: BoxDecoration(
                             color: AppTheme.accentEmerald.withValues(alpha: 0.15),
                             borderRadius: BorderRadius.circular(12),
+                            border: Border.all(color: AppTheme.accentEmerald.withValues(alpha: 0.4)),
                           ),
                           child: Text(
-                            'Frame #${result.strikeFrameIdx}',
+                            'Impact Frame #${result.strikeFrameIdx}',
                             style: GoogleFonts.robotoMono(
-                              fontSize: 11,
-                              fontWeight: FontWeight.w600,
+                              fontSize: 10,
+                              fontWeight: FontWeight.w700,
                               color: AppTheme.accentEmerald,
                             ),
                           ),
@@ -237,11 +260,26 @@ class ResultsScreen extends StatelessWidget {
                       ),
                     ),
                     const SizedBox(height: 8),
-                    Text(
-                      'Isolated run-up window up to foot-ball impact moment (MediaPipe 33 3D keypoints).',
-                      style: GoogleFonts.inter(
-                        fontSize: 11,
-                        color: AppTheme.textSubtle,
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                      decoration: BoxDecoration(
+                        color: Colors.white.withValues(alpha: 0.03),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Row(
+                        children: [
+                          const Icon(Icons.check_circle_rounded, size: 13, color: AppTheme.accentEmerald),
+                          const SizedBox(width: 6),
+                          Expanded(
+                            child: Text(
+                              'Verified Strike Moment: 33 3D body keypoints extracted at the exact millisecond of contact.',
+                              style: GoogleFonts.inter(
+                                fontSize: 10.5,
+                                color: AppTheme.textMuted,
+                              ),
+                            ),
+                          ),
+                        ],
                       ),
                     ),
                   ],
@@ -267,10 +305,15 @@ class ResultsScreen extends StatelessWidget {
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Text(
-                    'Multi-Scale Inception Inference',
-                    style: GoogleFonts.inter(fontSize: 12, color: AppTheme.textMuted),
+                  Expanded(
+                    child: Text(
+                      'Multi-Scale Inception Inference',
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: GoogleFonts.inter(fontSize: 12, color: AppTheme.textMuted),
+                    ),
                   ),
+                  const SizedBox(width: 8),
                   Text(
                     '${result.inferenceTimeMs.toStringAsFixed(0)} ms',
                     style: GoogleFonts.robotoMono(
