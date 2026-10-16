@@ -94,7 +94,11 @@ class _AnalyzeScreenState extends State<AnalyzeScreen> {
 
       Navigator.of(context).push(
         MaterialPageRoute(
-          builder: (_) => ResultsScreen(result: result),
+          builder: (_) => ResultsScreen(
+            result: result,
+            videoFile: _selectedFile,
+            sampleName: 'Uploaded Penalty Video',
+          ),
         ),
       );
     } catch (e) {

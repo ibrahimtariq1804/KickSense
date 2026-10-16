@@ -61,8 +61,28 @@ class _HomeScreenState extends State<HomeScreen> {
       final PredictionResult result = await ApiService.predictSample(sampleId);
       if (!mounted) return;
       ScaffoldMessenger.of(context).hideCurrentSnackBar();
+
+      final sample = _samples.firstWhere(
+        (s) => s['id'] == sampleId,
+        orElse: () => <String, dynamic>{},
+      );
+      final baseUrl = await ApiService.getBaseUrl();
+      final videoUrl = '$baseUrl/api/sample-video/$sampleId';
+      final sampleName = sample['name'] as String?;
+      final trueDir = sample['true_direction'] as String?;
+      final truePwr = (sample['true_power'] as num?)?.toDouble();
+
+      if (!mounted) return;
       Navigator.of(context).push(
-        MaterialPageRoute(builder: (_) => ResultsScreen(result: result)),
+        MaterialPageRoute(
+          builder: (_) => ResultsScreen(
+            result: result,
+            videoUrl: videoUrl,
+            sampleName: sampleName,
+            trueDirection: trueDir,
+            truePower: truePwr,
+          ),
+        ),
       );
     } catch (e) {
       if (!mounted) return;

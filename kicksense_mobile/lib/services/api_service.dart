@@ -7,9 +7,8 @@ import '../models/prediction_result.dart';
 class ApiService {
   static const String _prefKeyBaseUrl = 'kicksense_backend_url';
   
-  // Default URL: 10.0.2.2 is Android emulator's alias for host PC localhost.
-  // On Windows desktop or web, 127.0.0.1 works directly.
-  static const String _defaultUrl = 'http://10.0.2.2:8000';
+  // Default URL: With ADB reverse or desktop, 127.0.0.1:8000 routes directly to PC.
+  static const String _defaultUrl = 'http://127.0.0.1:8000';
 
   static Future<String> getBaseUrl() async {
     final prefs = await SharedPreferences.getInstance();

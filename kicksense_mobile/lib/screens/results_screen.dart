@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../models/prediction_result.dart';
@@ -5,11 +6,25 @@ import '../theme/app_theme.dart';
 import '../widgets/goal_visualizer.dart';
 import '../widgets/power_meter.dart';
 import '../widgets/telemetry_card.dart';
+import '../widgets/video_replay_card.dart';
 
 class ResultsScreen extends StatelessWidget {
   final PredictionResult result;
+  final File? videoFile;
+  final String? videoUrl;
+  final String? sampleName;
+  final String? trueDirection;
+  final double? truePower;
 
-  const ResultsScreen({super.key, required this.result});
+  const ResultsScreen({
+    super.key,
+    required this.result,
+    this.videoFile,
+    this.videoUrl,
+    this.sampleName,
+    this.trueDirection,
+    this.truePower,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -17,6 +32,9 @@ class ResultsScreen extends StatelessWidget {
     if (result.direction == 'Left') arrow = '⬅️';
     if (result.direction == 'Center') arrow = '⬆️';
     if (result.direction == 'Right') arrow = '➡️';
+
+    final bool hasTrueLabel = trueDirection != null;
+    final bool isCorrect = hasTrueLabel && trueDirection!.toLowerCase() == result.direction.toLowerCase();
 
     return Scaffold(
       appBar: AppBar(
@@ -73,14 +91,38 @@ class ResultsScreen extends StatelessWidget {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(
-                          'PREDICTED DIRECTION',
-                          style: GoogleFonts.outfit(
-                            fontSize: 11,
-                            fontWeight: FontWeight.w700,
-                            letterSpacing: 1.2,
-                            color: AppTheme.accentCyan,
-                          ),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Text(
+                              'PREDICTED DIRECTION',
+                              style: GoogleFonts.outfit(
+                                fontSize: 11,
+                                fontWeight: FontWeight.w700,
+                                letterSpacing: 1.2,
+                                color: AppTheme.accentCyan,
+                              ),
+                            ),
+                            if (hasTrueLabel)
+                              Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                decoration: BoxDecoration(
+                                  color: (isCorrect ? AppTheme.accentEmerald : AppTheme.accentAmber).withValues(alpha: 0.2),
+                                  borderRadius: BorderRadius.circular(6),
+                                  border: Border.all(
+                                    color: (isCorrect ? AppTheme.accentEmerald : AppTheme.accentAmber).withValues(alpha: 0.5),
+                                  ),
+                                ),
+                                child: Text(
+                                  isCorrect ? 'VERIFIED MATCH' : 'DISGUISED SHOT',
+                                  style: GoogleFonts.robotoMono(
+                                    fontSize: 9,
+                                    fontWeight: FontWeight.w700,
+                                    color: isCorrect ? AppTheme.accentEmerald : AppTheme.accentAmber,
+                                  ),
+                                ),
+                              ),
+                          ],
                         ),
                         const SizedBox(height: 2),
                         Text(
@@ -115,6 +157,18 @@ class ResultsScreen extends StatelessWidget {
               ),
             ),
             const SizedBox(height: 16),
+
+            // Video Replay & Visual Proof Card
+            if (videoFile != null || (videoUrl != null && videoUrl!.isNotEmpty)) ...[
+              VideoReplayCard(
+                videoFile: videoFile,
+                videoUrl: videoUrl,
+                sampleName: sampleName,
+                trueDirection: trueDirection,
+                predictedDirection: result.direction,
+              ),
+              const SizedBox(height: 16),
+            ],
 
             // Goal Net Visualizer
             GoalVisualizer(
