@@ -35,6 +35,15 @@ class ApiService {
     }
   }
 
+  static const List<Map<String, dynamic>> defaultSamples = [
+    {"id": "penalty_01", "name": "Argentina vs France (World Cup Final)", "true_direction": "Right", "true_power": 10.0},
+    {"id": "penalty_02", "name": "World Cup Shootout Clip A", "true_direction": "Left", "true_power": 5.0},
+    {"id": "penalty_04", "name": "World Cup Shootout Clip B", "true_direction": "Right", "true_power": 6.0},
+    {"id": "penalty_05", "name": "Center Placement Sample", "true_direction": "Center", "true_power": 7.0},
+    {"id": "penalty_291", "name": "Recorded Session — Drive", "true_direction": "Left", "true_power": 9.5},
+    {"id": "penalty_292", "name": "Recorded Session — Corner", "true_direction": "Right", "true_power": 9.0}
+  ];
+
   static Future<List<Map<String, dynamic>>> getSampleClips() async {
     try {
       final base = await getBaseUrl();
@@ -43,10 +52,12 @@ class ApiService {
       if (res.statusCode == 200) {
         final data = jsonDecode(res.body);
         final list = data['samples'] as List<dynamic>? ?? [];
-        return list.map((e) => Map<String, dynamic>.from(e as Map)).toList();
+        if (list.isNotEmpty) {
+          return list.map((e) => Map<String, dynamic>.from(e as Map)).toList();
+        }
       }
     } catch (_) {}
-    return [];
+    return defaultSamples;
   }
 
   static Future<PredictionResult> predictSample(String sampleId) async {

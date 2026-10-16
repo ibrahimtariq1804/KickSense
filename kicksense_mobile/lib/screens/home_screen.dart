@@ -14,8 +14,8 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
-  List<Map<String, dynamic>> _samples = [];
-  bool _loadingSamples = true;
+  List<Map<String, dynamic>> _samples = List.from(ApiService.defaultSamples);
+  bool _loadingSamples = false;
   bool _isPredictingSample = false;
 
   @override
@@ -25,9 +25,8 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Future<void> _fetchSamples() async {
-    setState(() => _loadingSamples = true);
     final list = await ApiService.getSampleClips();
-    if (mounted) {
+    if (mounted && list.isNotEmpty) {
       setState(() {
         _samples = list;
         _loadingSamples = false;
@@ -240,17 +239,29 @@ class _HomeScreenState extends State<HomeScreen> {
               const SizedBox(height: 24),
 
               // Instant Sample Kicks Section
-              Text(
-                'INSTANT DEMO SAMPLES',
-                style: GoogleFonts.outfit(
-                  fontSize: 12,
-                  fontWeight: FontWeight.w700,
-                  letterSpacing: 1.0,
-                  color: AppTheme.textSubtle,
-                ),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    'INSTANT DEMO SAMPLES',
+                    style: GoogleFonts.outfit(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w700,
+                      letterSpacing: 1.0,
+                      color: AppTheme.textSubtle,
+                    ),
+                  ),
+                  IconButton(
+                    iconSize: 18,
+                    padding: EdgeInsets.zero,
+                    constraints: const BoxConstraints(),
+                    icon: const Icon(Icons.refresh_rounded, color: AppTheme.textMuted),
+                    onPressed: _fetchSamples,
+                  ),
+                ],
               ),
               const SizedBox(height: 10),
-              if (_loadingSamples)
+              if (_loadingSamples && _samples.isEmpty)
                 const Center(child: Padding(padding: EdgeInsets.all(12), child: CircularProgressIndicator(strokeWidth: 2)))
               else if (_samples.isEmpty)
                 Container(
@@ -301,13 +312,19 @@ class _HomeScreenState extends State<HomeScreen> {
                               Row(
                                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                 children: [
-                                  Text(
-                                    '${s['true_direction']}',
-                                    style: GoogleFonts.robotoMono(
-                                      fontSize: 11,
-                                      fontWeight: FontWeight.w700,
-                                      color: AppTheme.accentEmerald,
-                                    ),
+                                  Row(
+                                    children: [
+                                      const Icon(Icons.bolt_rounded, size: 14, color: AppTheme.accentEmerald),
+                                      const SizedBox(width: 4),
+                                      Text(
+                                        'Tap to Test',
+                                        style: GoogleFonts.outfit(
+                                          fontSize: 11,
+                                          fontWeight: FontWeight.w700,
+                                          color: AppTheme.accentEmerald,
+                                        ),
+                                      ),
+                                    ],
                                   ),
                                   const Icon(Icons.play_circle_fill_rounded, size: 20, color: AppTheme.accentCyan),
                                 ],
